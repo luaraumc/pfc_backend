@@ -1,10 +1,14 @@
-# CRUD DE CURSO USANDO SQLALCHEMY
+import os
+# acessa variáveis de ambiente do sistema
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 # create_engine: cria a conexão com o banco de dados
 # Column, Integer, String, Text, DateTime: definem os tipos e colunas das tabelas
 
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 # declarative_base: base para a criação dos modelos ORM
 
 from sqlalchemy.orm import sessionmaker
@@ -13,17 +17,17 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 # func permite usar funções SQL nativas, como NOW() para datetime
 
-import os
-# acessa variáveis de ambiente do sistema
+from datetime import datetime
+# manipulação de datas e horas
 
 # Configuração da conexão
 DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+engine = create_engine(DATABASE_URL)  # Cria o objeto de conexão
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)  # Gera sessões para executar operações
+Base = declarative_base()  # Base para definição dos modelos ORM (tabelas)
 
-# Modelo da tabela cursos
+# Modelo da tabela "cursos"
 class Curso(Base):
 	__tablename__ = 'cursos'
 	id = Column(Integer, primary_key=True, index=True)
@@ -68,3 +72,17 @@ def deletar_curso(session, id):
 		session.delete(curso)
 		session.commit()
 	return curso
+
+# ------------------ EXEMPLO DE INSERT ------------------
+
+session = SessionLocal()
+
+novo_id = criar_curso(
+    session,
+    nome="Sistemas de Informação",
+    descricao="Teste"
+)
+
+print("ID do novo curso:", novo_id)
+
+session.close()

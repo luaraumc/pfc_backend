@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException
-from curso import listar_cursos, buscar_curso_por_id
+from fastapi import FastAPI, HTTPException # HTTPException: retornar erros HTTP personalizados
+from cursos import listar_cursos, buscar_curso_por_id
 
 app = FastAPI()
 
