@@ -1,13 +1,13 @@
-from fastapi import FastAPI, HTTPException # HTTPException: retornar erros HTTP personalizados
+from fastapi import APIRouter, HTTPException
 from carreiras import listar_carreiras, buscar_carreira_por_id
 
-app = FastAPI()
+carreirasRouter = APIRouter(prefix="/carreiras", tags=["carreiras"])
 
-@app.get("/carreiras")
+@carreirasRouter.get("/")
 def get_carreiras():
     return listar_carreiras()
 
-@app.get("/carreiras/{carreira_id}")
+@carreirasRouter.get("/{carreira_id}")
 def get_carreira(carreira_id: int):
     carreira = buscar_carreira_por_id(carreira_id)
     if not carreira:

@@ -1,13 +1,13 @@
-from fastapi import FastAPI, HTTPException # HTTPException: retornar erros HTTP personalizados
+from fastapi import APIRouter, HTTPException
 from cursos import listar_cursos, buscar_curso_por_id
 
-app = FastAPI()
+cursosRouter = APIRouter(prefix="/cursos", tags=["cursos"])
 
-@app.get("/cursos")
+@cursosRouter.get("/")
 def get_cursos():
     return listar_cursos()
 
-@app.get("/cursos/{curso_id}")
+@cursosRouter.get("/{curso_id}")
 def get_curso(curso_id: int):
     curso = buscar_curso_por_id(curso_id)
     if not curso:
