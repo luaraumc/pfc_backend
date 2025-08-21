@@ -1,47 +1,19 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
-# create_engine: cria a conexão com o banco de dados
-# Column, Integer, String, Text, DateTime, ForeignKey: definem os tipos e colunas das tabelas
-
-from sqlalchemy.ext.declarative import declarative_base
-# declarative_base: base para a criação dos modelos ORM
-
-from sqlalchemy.orm import sessionmaker, relationship
-# sessionmaker: cria sessões para manipular o banco
-# relationship: gerencia conexões entre diferentes tabelas
-
-from sqlalchemy.sql import func
-# func permite usar funções SQL nativas, como NOW() para datetime
-
-import os
-# acessa variáveis de ambiente do sistema
+from sqlalchemy import create_engine # cria a conexão com o banco de dados
+from sqlalchemy.ext.declarative import declarative_base # declarative_base: base para a criação dos modelos ORM
+from sqlalchemy.orm import sessionmaker, relationship # sessionmaker: cria sessões para manipular o banco / relationship: gerencia conexões entre diferentes tabelas
+from sqlalchemy.sql import func # func permite usar funções SQL nativas, como NOW() para datetime
+import os # acessa variáveis de ambiente do sistema
+from models import Usuario, Curso, Carreira # modelos de tabelas definidos no arquivo models.py
+from dotenv import load_dotenv # carrega variáveis de ambiente
 
 # Configuração da conexão
+load_dotenv()
 DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-
 engine = create_engine(DATABASE_URL)  # Cria o objeto de conexão
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)  # Gera sessões para executar operações
 Base = declarative_base()  # Base para definição dos modelos ORM (tabelas)
 
-# Modelo da tabela "usuarios"
-class Usuario(Base):
-	__tablename__ = 'usuarios'
-	id = Column(Integer, primary_key=True, index=True)
-	nome = Column(String(100), nullable=False)
-	email = Column(String(150), nullable=False)
-	senha = Column(Text, nullable=False)
-	curso_id = Column(Integer, ForeignKey('cursos.id', ondelete='SET NULL'), nullable=True)
-	criado_em = Column(DateTime, server_default=func.now())
-	atualizado_em = Column(DateTime, server_default=func.now())
-	curso = relationship('Curso', backref='usuarios')
-
-# Modelo da tabela cursos (para garantir o funcionamento da relação)
-class Curso(Base):
-	__tablename__ = 'cursos'
-	id = Column(Integer, primary_key=True, index=True)
-	nome = Column(String(150), nullable=False)
-	descricao = Column(Text, nullable=False)
-	criado_em = Column(DateTime, server_default=func.now())
-	atualizado_em = Column(DateTime, server_default=func.now())
+# ======================= CRUD =======================
 
 # CREATE - Cria um novo usuário
 def criar_usuario(session, nome, email, senha, curso_id):

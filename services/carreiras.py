@@ -1,18 +1,12 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
-# create_engine: cria a conexão com o banco de dados
-# Column, Integer, String, Text, DateTime: definem os tipos e colunas das tabelas
+from sqlalchemy import create_engine # cria a conexão com o banco de dados
+from sqlalchemy.ext.declarative import declarative_base # declarative_base: base para a criação dos modelos ORM
+from sqlalchemy.orm import sessionmaker # sessionmaker: cria sessões para manipular o banco
+from sqlalchemy.sql import func # func permite usar funções SQL nativas, como NOW() para datetime
+import os # acessa variáveis de ambiente do sistema
+from models import Carreira # modelos de tabelas definidos no arquivo models.py
+from dotenv import load_dotenv # carrega variáveis de ambiente
 
-from sqlalchemy.ext.declarative import declarative_base
-# declarative_base: base para a criação dos modelos ORM
-
-from sqlalchemy.orm import sessionmaker
-# sessionmaker: cria sessões para manipular o banco
-
-from sqlalchemy.sql import func
-# func permite usar funções SQL nativas, como NOW() para datetime
-
-import os
-# acessa variáveis de ambiente do sistema
+load_dotenv()
 
 # Configuração da conexão
 DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
@@ -21,14 +15,7 @@ engine = create_engine(DATABASE_URL)  # Cria o objeto de conexão
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)  # Gera sessões para executar operações
 Base = declarative_base()  # Base para definição dos modelos ORM (tabelas)
 
-# Modelo tabela "carreiras"
-class Carreira(Base):
-	__tablename__ = 'carreiras'
-	id = Column(Integer, primary_key=True, index=True)
-	nome = Column(String(150), nullable=False)
-	descricao = Column(Text, nullable=False)
-	criado_em = Column(DateTime, server_default=func.now())
-	atualizado_em = Column(DateTime, server_default=func.now())
+# ======================= CRUD =======================
 
 # CREATE - Cria uma nova carreira
 def criar_carreira(session, nome, descricao):
