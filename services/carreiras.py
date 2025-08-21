@@ -6,11 +6,9 @@ import os # acessa variáveis de ambiente do sistema
 from models import Carreira # modelos de tabelas definidos no arquivo models.py
 from dotenv import load_dotenv # carrega variáveis de ambiente
 
-load_dotenv()
-
 # Configuração da conexão
+load_dotenv()
 DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-
 engine = create_engine(DATABASE_URL)  # Cria o objeto de conexão
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)  # Gera sessões para executar operações
 Base = declarative_base()  # Base para definição dos modelos ORM (tabelas)
