@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from carreiras import listar_carreiras, buscar_carreira_por_id
+from services.carreiras import listar_carreiras, buscar_carreira_por_id
 
 carreirasRouter = APIRouter(prefix="/carreiras", tags=["carreiras"])
 
