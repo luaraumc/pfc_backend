@@ -1,4 +1,4 @@
-from models import Curso, SessionLocal # modelo de tabela definido no arquivo models.py / sessões para executar operações
+from pfc_backend.app.models import Curso, SessionLocal # modelo de tabela definido no arquivo models.py / sessões para executar operações
 
 # ======================= CRUD =======================
 

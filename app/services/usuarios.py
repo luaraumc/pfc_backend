@@ -1,4 +1,4 @@
-from models import Usuario # modelo de tabela definido no arquivo models.py
+from pfc_backend.app.models import Usuario # modelo de tabela definido no arquivo models.py
 
 # ======================= CRUD =======================
 
