@@ -1,17 +1,4 @@
-from sqlalchemy import create_engine # cria a conexão com o banco de dados
-from sqlalchemy.ext.declarative import declarative_base # declarative_base: base para a criação dos modelos ORM
-from sqlalchemy.orm import sessionmaker, relationship # sessionmaker: cria sessões para manipular o banco / relationship: gerencia conexões entre diferentes tabelas
-from sqlalchemy.sql import func # func permite usar funções SQL nativas, como NOW() para datetime
-import os # acessa variáveis de ambiente do sistema
-from models import Usuario, Curso, Carreira # modelos de tabelas definidos no arquivo models.py
-from dotenv import load_dotenv # carrega variáveis de ambiente
-
-# Configuração da conexão
-load_dotenv()
-DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-engine = create_engine(DATABASE_URL)  # Cria o objeto de conexão
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)  # Gera sessões para executar operações
-Base = declarative_base()  # Base para definição dos modelos ORM (tabelas)
+from models import Usuario # modelo de tabela definido no arquivo models.py
 
 # ======================= CRUD =======================
 

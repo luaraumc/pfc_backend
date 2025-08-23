@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from services.usuarios import listar_usuarios, buscar_usuario_por_id
 
 authRouter = APIRouter(prefix="/auth", tags=["auth"])
 
