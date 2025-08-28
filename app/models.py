@@ -33,7 +33,7 @@ class Curso(Base):
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), nullable=False)
 	descricao = Column(Text, nullable=False)
-	atualizado_em = Column(DateTime, server_default=func.now())
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
 # Modelo tabela "carreira"
 class Carreira(Base):
@@ -41,7 +41,7 @@ class Carreira(Base):
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), nullable=False)
 	descricao = Column(Text)
-	atualizado_em = Column(DateTime, server_default=func.now())
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
 # Modelo da tabela "usuario"
 class Usuario(Base):
@@ -50,10 +50,10 @@ class Usuario(Base):
 	nome = Column(String(100), nullable=False)
 	email = Column(String(150), unique=True, nullable=False)
 	senha = Column(Text, nullable=False)
-	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=True)
-	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=True)
-	criado_em = Column(DateTime, server_default=func.now())
-	atualizado_em = Column(DateTime, server_default=func.now())
+	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=False)
+	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=False)
+	criado_em = Column(DateTime, server_default=func.now(), nullable=False)
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 	carreira = relationship('Carreira', backref='usuarios')
 	curso = relationship('Curso', backref='usuarios')
 
@@ -62,24 +62,24 @@ class Habilidade(Base):
 	__tablename__ = 'habilidade'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), unique=True, nullable=False)
-	atualizado_em = Column(DateTime, server_default=func.now())
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
 # Modelo da tabela "conhecimento"
 class Conhecimento(Base):
 	__tablename__ = 'conhecimento'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), unique=True, nullable=False)
-	atualizado_em = Column(DateTime, server_default=func.now())
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
 # Modelo da tabela "compatibilidade"
 class Compatibilidade(Base):
 	__tablename__ = 'compatibilidade'
 	id = Column(Integer, primary_key=True, index=True)
-	usuario_id = Column(Integer, ForeignKey('usuario.id', ondelete='SET NULL'), nullable=True)
-	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=True)
-	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=True)
-	compatibilidade = Column(Numeric(5,2))
-	atualizado_em = Column(DateTime, server_default=func.now())
+	usuario_id = Column(Integer, ForeignKey('usuario.id', ondelete='SET NULL'), nullable=False)
+	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=False)
+	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=False)
+	compatibilidade = Column(Numeric(5,2), nullable=False)
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 	usuario = relationship('Usuario', backref='compatibilidades')
 	carreira = relationship('Carreira', backref='compatibilidades')
 	curso = relationship('Curso', backref='compatibilidades')
