@@ -7,11 +7,26 @@ from dotenv import load_dotenv
 import os
 
 # Configuração da conexão
-load_dotenv()
-DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-engine = create_engine(DATABASE_URL)  # Cria o objeto de conexão
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)  # Gera sessões para executar operações
-Base = declarative_base() # classe utilizada para criar os modelos ORM que representam as tabelas do banco de dados
+def setup_database():
+    """
+    Realiza toda a configuração da conexão com o banco de dados e retorna:
+    - engine: objeto de conexão
+    - SessionLocal: função para criar sessões
+    - Base: classe base para os modelos ORM
+    """
+    from dotenv import load_dotenv
+    import os
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker, declarative_base
+
+    load_dotenv()
+    DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+    engine = create_engine(DATABASE_URL)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base = declarative_base()
+    return engine, SessionLocal, Base
+
+engine, SessionLocal, Base = setup_database()
 
 # ===================== TABELAS PRINCIPAIS =====================
 

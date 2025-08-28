@@ -1,4 +1,7 @@
 from pfc_backend.app.models import Curso, SessionLocal # modelo de tabela definido no arquivo models.py / sessões para executar operações
+from pfc_backend.app.models import setup_database # conexão do banco de dados
+
+engine, SessionLocal, Base = setup_database()
 
 # ======================= CRUD =======================
 
