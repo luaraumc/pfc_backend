@@ -31,6 +31,7 @@ class Carreira(Base):
 	descricao = Column(Text)
 	atualizado_em = Column(DateTime, server_default=func.now())
 
+
 # Modelo da tabela "usuario"
 class Usuario(Base):
 	__tablename__ = 'usuario'
@@ -47,6 +48,7 @@ class Usuario(Base):
 	# relationship: permite acessar a carreira e curso relacionados a um usuario
 	# backref: cria uma lista de usuarios acessível a partir de cada carreira ou curso
 
+
 # Modelo da tabela "habilidade"
 class Habilidade(Base):
 	__tablename__ = 'habilidade'
@@ -54,12 +56,14 @@ class Habilidade(Base):
 	nome = Column(String(150), unique=True, nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now())
 
+
 # Modelo da tabela "conhecimento"
 class Conhecimento(Base):
 	__tablename__ = 'conhecimento'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), unique=True, nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now())
+
 
 # Modelo da tabela "compatibilidade"
 class Compatibilidade(Base):
@@ -76,6 +80,7 @@ class Compatibilidade(Base):
 	# relationship: permite acessar usuário, carreira e curso relacionados a uma compatibilidade
 	# backref: cria uma lista de compatibilidades acessível a partir de cada usuário, carreira ou curso
 
+
 # ===================== TABELAS RELACIONAIS =====================
 
 class CursoConhecimento(Base):
@@ -86,6 +91,7 @@ class CursoConhecimento(Base):
     __table_args__ = (
         UniqueConstraint('curso_id', 'conhecimento_id', name='uq_curso_conhecimento'), # UniqueConstraint: garante que não haja duplicidade
     )
+
 
 class CarreiraHabilidade(Base):
     __tablename__ = 'carreira_habilidade'
