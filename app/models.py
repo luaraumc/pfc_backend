@@ -1,12 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint
-from sqlalchemy import create_engine # cria a conexão com o banco de dados
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint # tipos de dados e restrições
 from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para timestamps automáticos
-from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy.orm import sessionmaker # cria sessões para manipular o banco
-from dotenv import load_dotenv
-import os
+from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
 
-# Configuração da conexão
+# Configuração da conexão com o banco de dados
 def setup_database():
     """
     Realiza toda a configuração da conexão com o banco de dados e retorna:
@@ -14,10 +10,11 @@ def setup_database():
     - SessionLocal: função para criar sessões
     - Base: classe base para os modelos ORM
     """
-    from dotenv import load_dotenv
+	
     import os
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker, declarative_base
+    from dotenv import load_dotenv
+    from sqlalchemy import create_engine # cria a conexão com o banco de dados
+    from sqlalchemy.orm import sessionmaker, declarative_base # cria sessões para interagir com o banco e define a classe base para os modelos
 
     load_dotenv()
     DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
@@ -59,8 +56,6 @@ class Usuario(Base):
 	atualizado_em = Column(DateTime, server_default=func.now())
 	carreira = relationship('Carreira', backref='usuarios')
 	curso = relationship('Curso', backref='usuarios')
-	# relationship: permite acessar a carreira e curso relacionados a um usuario
-	# backref: cria uma lista de usuarios acessível a partir de cada carreira ou curso
 
 # Modelo da tabela "habilidade"
 class Habilidade(Base):
@@ -88,8 +83,8 @@ class Compatibilidade(Base):
 	usuario = relationship('Usuario', backref='compatibilidades')
 	carreira = relationship('Carreira', backref='compatibilidades')
 	curso = relationship('Curso', backref='compatibilidades')
-	# relationship: permite acessar usuário, carreira e curso relacionados a uma compatibilidade
-	# backref: cria uma lista de compatibilidades acessível a partir de cada usuário, carreira ou curso
+	
+# backref: cria um relacionamento bidirecional entre os modelos
 
 # ===================== TABELAS RELACIONAIS =====================
 
@@ -97,9 +92,9 @@ class CursoConhecimento(Base):
     __tablename__ = 'curso_conhecimento'
     id = Column(Integer, primary_key=True, index=True)
     curso_id = Column(Integer, ForeignKey('curso.id', ondelete='CASCADE'), nullable=False)
-    conhecimento_id = Column(Integer, ForeignKey('conhecimento.id', ondelete='CASCADE'), nullable=False) # ondelete='CASCADE': garante que ao excluir o registro principal os relacionados também sejam excluídos
+    conhecimento_id = Column(Integer, ForeignKey('conhecimento.id', ondelete='CASCADE'), nullable=False)
     __table_args__ = (
-        UniqueConstraint('curso_id', 'conhecimento_id', name='uq_curso_conhecimento'), # UniqueConstraint: garante que não haja duplicidade
+        UniqueConstraint('curso_id', 'conhecimento_id', name='uq_curso_conhecimento'),
     )
 
 class CarreiraHabilidade(Base):
@@ -128,3 +123,6 @@ class ConhecimentoHabilidade(Base):
     __table_args__ = (
         UniqueConstraint('conhecimento_id', 'habilidade_id', name='uq_conhecimento_habilidade'),
     )
+
+# ondelete='CASCADE': garante que ao excluir o registro principal os relacionados também sejam excluídos
+# UniqueConstraint: garante que não haja duplicidade

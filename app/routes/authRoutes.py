@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services.usuarios import listar_usuarios, buscar_usuario_por_id
+from pfc_backend.app.services.usuario import criar_usuario, atualizar_usuario, listar_usuarios, buscar_usuario_por_id
 
 authRouter = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -7,6 +7,6 @@ authRouter = APIRouter(prefix="/auth", tags=["auth"])
 async def login():
     return {"message": "Login"}
 
-@authRouter.post("/register")
-async def register():
-    return {"message": "Register"}
+@authRouter.post("/cadastro")
+async def cadastro():
+    return {"message": "Cadastro"}

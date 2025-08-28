@@ -6,8 +6,8 @@ engine, SessionLocal, Base = setup_database()
 # ======================= CRUD =======================
 
 # CREATE - Cria um novo usuário
-def criar_usuario(session, nome, email, senha, curso_id):
-    novo_usuario = Usuario(nome=nome, email=email, senha=senha, curso_id=curso_id)
+def criar_usuario(session, nome, email, senha, carreira_id, curso_id):
+    novo_usuario = Usuario(nome=nome, email=email, senha=senha, carreira_id=carreira_id, curso_id=curso_id)
     session.add(novo_usuario)
     session.commit()
     session.refresh(novo_usuario)
