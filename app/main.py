@@ -4,11 +4,11 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-from routes.authRoutes import authRouter
+from routes.usuarioRoutes import usuarioRouter
 from routes.carreiraRoutes import carreirasRouter
 from routes.cursoRoutes import cursosRouter
 
-app.include_router(authRouter)
+app.include_router(usuarioRouter)
 app.include_router(carreirasRouter)
 app.include_router(cursosRouter)
 
