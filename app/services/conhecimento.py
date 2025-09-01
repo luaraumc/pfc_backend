@@ -1,5 +1,5 @@
-from models import Conhecimento, setup_database # modelo da tabela e conexão com o banco de dados
-from schemas import ConhecimentoBase, ConhecimentoOut # schema de dados
+from app.models import Conhecimento, setup_database # modelo da tabela e conexão com o banco de dados
+from app.schemas import ConhecimentoBase, ConhecimentoOut # schema de dados
 
 engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 

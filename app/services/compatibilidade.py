@@ -1,5 +1,5 @@
-from models import Compatibilidade, setup_database # modelo da tabela e conexão com o banco de dados
-from schemas import CompatibilidadeBase, CompatibilidadeOut # schema de dados
+from app.models import Compatibilidade, setup_database # modelo da tabela e conexão com o banco de dados
+from app.schemas import CompatibilidadeBase, CompatibilidadeOut # schema de dados
 
 engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 

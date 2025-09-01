@@ -1,5 +1,5 @@
-from models import Carreira, setup_database # modelo da tabela e conexão com o banco de dados
-from schemas import CarreiraBase, CarreiraOut # schema de dados
+from app.models import Carreira, setup_database # modelo da tabela e conexão com o banco de dados
+from app.schemas import CarreiraBase, CarreiraOut # schema de dados
 
 engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 

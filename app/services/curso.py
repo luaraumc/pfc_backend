@@ -1,5 +1,5 @@
-from models import Curso, setup_database # modelo da tabela e conexão com o banco de dados
-from schemas import CursoBase, CursoOut # schema de dados
+from app.models import Curso, setup_database # modelo da tabela e conexão com o banco de dados
+from app.schemas import CursoBase, CursoOut # schema de dados
 
 engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 

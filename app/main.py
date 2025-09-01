@@ -11,9 +11,9 @@ KEY_CRYPT = os.getenv('KEY_CRYPT') # chave de criptografia --> Irá pegar a senh
 app = FastAPI() # instancia do FastAPI
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto") # define o esquema de criptografia --> (deprecated=auto) caso o esquema (bcrypt) fique obsoleto, ele irá atualizar automaticamente
 
-from routes.usuarioRoutes import usuarioRouter
-from routes.carreiraRoutes import carreirasRouter
-from routes.cursoRoutes import cursosRouter
+from app.routes.usuarioRoutes import usuarioRouter
+from app.routes.carreiraRoutes import carreirasRouter
+from app.routes.cursoRoutes import cursosRouter
 
 app.include_router(usuarioRouter)
 app.include_router(carreirasRouter)
