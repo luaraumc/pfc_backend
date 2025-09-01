@@ -1,4 +1,4 @@
-from models import Usuario # modelo de tabela definido no arquivo models.py
+from app.models import Usuario # modelo de tabela definido no arquivo models.py
 from app.dependencies import setup_database # conexão do banco de dados
 
 engine, SessionLocal, Base = setup_database()

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint # tipos de dados e restrições
 from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para timestamps automáticos
 from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
-from dependencies import setup_database # configuração da conexão com o banco de dados
+from app.dependencies import setup_database # configuração da conexão com o banco de dados
 
 
 

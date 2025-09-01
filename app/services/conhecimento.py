@@ -1,5 +1,5 @@
-from models import Conhecimento # modelo de tabela definido no arquivo models.py
-from models import setup_database # conexão do banco de dados
+from app.models import Conhecimento # modelo de tabela definido no arquivo models.py
+from app.models import setup_database # conexão do banco de dados
 
 engine, SessionLocal, Base = setup_database()
 

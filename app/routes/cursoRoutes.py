@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from services.curso import listar_cursos, buscar_curso_por_id
+from app.services.curso import listar_cursos, buscar_curso_por_id
 
 cursosRouter = APIRouter(prefix="/cursos", tags=["cursos"])
 
