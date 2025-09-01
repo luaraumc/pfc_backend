@@ -1,33 +1,13 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint # tipos de dados e restrições
 from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para timestamps automáticos
 from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
-
-# Configuração da conexão com o banco de dados
-def setup_database():
-    """
-    Realiza toda a configuração da conexão com o banco de dados e retorna:
-    - engine: objeto de conexão
-    - SessionLocal: função para criar sessões
-    - Base: classe base para os modelos ORM
-    """
-	
-    import os
-    from dotenv import load_dotenv
-    from sqlalchemy import create_engine # cria a conexão com o banco de dados
-    from sqlalchemy.orm import sessionmaker, declarative_base # cria sessões para interagir com o banco e define a classe base para os modelos
-
-    load_dotenv()
-    DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    engine = create_engine(DATABASE_URL)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base = declarative_base()
-    return engine, SessionLocal, Base
+from dependencies import setup_database # configuração da conexão com o banco de dados
 
 engine, SessionLocal, Base = setup_database()
 
 # ===================== TABELAS PRINCIPAIS =====================
 
-# Modelo da tabela curso
+# Modelo da tabela "curso"
 class Curso(Base):
 	__tablename__ = 'curso'
 	id = Column(Integer, primary_key=True, index=True)
@@ -88,6 +68,7 @@ class Compatibilidade(Base):
 
 # ===================== TABELAS RELACIONAIS =====================
 
+# Modelo da tabela "curso_conhecimento"
 class CursoConhecimento(Base):
     __tablename__ = 'curso_conhecimento'
     id = Column(Integer, primary_key=True, index=True)
@@ -97,6 +78,7 @@ class CursoConhecimento(Base):
         UniqueConstraint('curso_id', 'conhecimento_id', name='uq_curso_conhecimento'),
     )
 
+# Modelo da tabela "carreira_habilidade"
 class CarreiraHabilidade(Base):
     __tablename__ = 'carreira_habilidade'
     id = Column(Integer, primary_key=True, index=True)
@@ -106,6 +88,7 @@ class CarreiraHabilidade(Base):
         UniqueConstraint('carreira_id', 'habilidade_id', name='uq_carreira_habilidade'),
     )
 
+# Modelo da tabela "usuario_habilidade"
 class UsuarioHabilidade(Base):
     __tablename__ = 'usuario_habilidade'
     id = Column(Integer, primary_key=True, index=True)
@@ -115,6 +98,7 @@ class UsuarioHabilidade(Base):
         UniqueConstraint('usuario_id', 'habilidade_id', name='uq_usuario_habilidade'),
     )
 
+# Modelo da tabela "conhecimento_habilidade"
 class ConhecimentoHabilidade(Base):
     __tablename__ = 'conhecimento_habilidade'
     id = Column(Integer, primary_key=True, index=True)
