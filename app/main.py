@@ -14,10 +14,10 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto") # define o 
 
 
 from app.routes.usuarioRoutes import usuarioRouter
-from app.routes.carreiraRoutes import carreirasRouter
-from app.routes.cursoRoutes import cursosRouter
+from app.routes.carreiraRoutes import carreiraRouter
+from app.routes.cursoRoutes import cursoRouter
 
 app.include_router(usuarioRouter)
-app.include_router(carreirasRouter)
-app.include_router(cursosRouter)
+app.include_router(carreiraRouter)
+app.include_router(cursoRouter)
 

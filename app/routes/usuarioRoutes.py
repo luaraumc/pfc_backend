@@ -21,9 +21,9 @@ async def cadastro(usuario_schema: UsuarioBase, session: Session = Depends(pegar
         raise HTTPException(status_code=400, detail="Email já cadastrado")
     else:
         # se não existir, cria o usuário
-        senha_criptografada = bcrypt_context.hash(usuario_schema.senha) # criptografa a senha do usuário
-        criar_usuario(session, usuario_schema.nome, usuario_schema.email, senha_criptografada, usuario_schema.carreira_id, usuario_schema.curso_id)
-        return {"message": f"Usuário cadastrado com sucesso {usuario_schema.email}"}
+        usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) # criptografa a senha do usuário
+        novo_usuario = criar_usuario(session, usuario_schema)
+        return {"message": f"Usuário cadastrado com sucesso {novo_usuario.nome}"}
     
 @usuarioRouter.get("/carreiras")
 async def listar_carreiras(session: Session = Depends(pegar_sessao)):
