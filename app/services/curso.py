@@ -38,17 +38,3 @@ def deletar_curso(session, id):
 		session.delete(curso)
 		session.commit()
 	return curso
-
-# ===================== EXEMPLO DE INSERT =====================
-
-session = SessionLocal()
-
-novo_id = criar_curso(
-    session,
-    nome="Sistemas de Informação",
-    descricao="Teste"
-)
-
-print("ID do novo curso:", novo_id)
-
-session.close()
