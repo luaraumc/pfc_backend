@@ -1,10 +1,11 @@
+import datetime
 from pydantic import BaseModel
+
 
 """
 Classes Base: representam os dados que serão enviados (POST). Não precisam dos campos autoincrement, pois são gerados pelo banco
 Classes Out: herdam das Classes Base e representam os dados que serão retornados (GET). Precisam dos campos autoincrement
 model_config = {'from_attributes': True}: permite que o Pydantic converta automaticamente objetos ORM do SQLAlchemy para schema
-SQLAlchemy converte timestamp em string, por isso criado_em e atualizado_em como str
 """
 
 # ===================== TABELAS PRINCIPAIS =====================
@@ -16,7 +17,7 @@ class CursoBase(BaseModel):
 
 class CursoOut(CursoBase):
     id: int
-    atualizado_em: str
+    atualizado_em: datetime
     model_config = {'from_attributes': True}
 
 # Schema de Carreira
@@ -26,7 +27,7 @@ class CarreiraBase(BaseModel):
 
 class CarreiraOut(CarreiraBase):
     id: int
-    atualizado_em: str
+    atualizado_em: datetime
 
     model_config = {'from_attributes': True}
 
@@ -44,8 +45,8 @@ class UsuarioOut(BaseModel):
     email: str
     carreira_id: int
     curso_id: int
-    criado_em: str
-    atualizado_em: str
+    criado_em: datetime
+    atualizado_em: datetime
 
     model_config = {'from_attributes': True}
 
@@ -55,7 +56,7 @@ class HabilidadeBase(BaseModel):
 
 class HabilidadeOut(HabilidadeBase):
     id: int
-    atualizado_em: str
+    atualizado_em: datetime
 
     model_config = {'from_attributes': True}
 
@@ -65,7 +66,7 @@ class ConhecimentoBase(BaseModel):
 
 class ConhecimentoOut(ConhecimentoBase):
     id: int
-    atualizado_em: str
+    atualizado_em: datetime
 
     model_config = {'from_attributes': True}
 
@@ -78,7 +79,7 @@ class CompatibilidadeBase(BaseModel):
 
 class CompatibilidadeOut(CompatibilidadeBase):
     id: int
-    atualizado_em: str
+    atualizado_em: datetime
 
     model_config = {'from_attributes': True}
 
