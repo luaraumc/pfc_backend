@@ -39,7 +39,7 @@ class UsuarioBase(BaseModel):
     carreira_id: int
     curso_id: int
 
-class UsuarioOut(BaseModel):
+class UsuarioOut(UsuarioBase):
     id: int
     nome: str
     email: str
