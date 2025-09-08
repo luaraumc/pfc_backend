@@ -1,8 +1,7 @@
-from app.models import Curso, SessionLocal # modelo de tabela definido no arquivo models.py / sessões para executar operações
-from app.models import setup_database # conexão do banco de dados
-from app.schemas import CursoBase, CursoOut # conexão do banco de dados
+from app.models import Curso, setup_database # modelo da tabela e conexão com o banco de dados
+from app.schemas import CursoBase, CursoOut # schema de dados
 
-engine, SessionLocal, Base = setup_database()
+engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos

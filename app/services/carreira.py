@@ -1,8 +1,7 @@
-from app.models import Carreira # modelo de tabela definido no arquivo models.py
-from app.models import setup_database
-from app.schemas import CarreiraBase, CarreiraOut # conexão do banco de dados
+from app.models import Carreira, setup_database # modelo da tabela e conexão com o banco de dados
+from app.schemas import CarreiraBase, CarreiraOut # schema de dados
 
-engine, SessionLocal, Base = setup_database()
+engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos

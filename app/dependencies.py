@@ -1,12 +1,12 @@
-# Configuração da conexão com o banco de dados
-def setup_database():
-    """
+"""
     Realiza toda a configuração da conexão com o banco de dados e retorna:
     - engine: objeto de conexão
     - SessionLocal: função para criar sessões
     - Base: classe base para os modelos ORM
     """
-	
+
+def setup_database():
+
     import os
     from dotenv import load_dotenv
     from sqlalchemy import create_engine # cria a conexão com o banco de dados
@@ -18,7 +18,6 @@ def setup_database():
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base = declarative_base()
     return engine, SessionLocal, Base
-
 
 engine, SessionLocal, Base = setup_database()
 

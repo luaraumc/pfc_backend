@@ -1,8 +1,7 @@
-from app.models import Usuario # modelo de tabela definido no arquivo models.py
-from app.dependencies import setup_database # conexão do banco de dados
-from app.schemas import UsuarioBase, UsuarioOut # conexão do banco de dados
+from app.models import Usuario, setup_database # modelo da tabela e conexão com o banco de dados
+from app.schemas import UsuarioBase, UsuarioOut # schema de dados
 
-engine, SessionLocal, Base = setup_database()
+engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos

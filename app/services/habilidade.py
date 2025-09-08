@@ -1,8 +1,7 @@
-from app.models import Habilidade # modelo de tabela definido no arquivo models.py
-from app.models import setup_database # conexão do banco de dados
-from app.schemas import HabilidadeBase, HabilidadeOut # conexão do banco de dados
+from app.models import Habilidade, setup_database # modelo da tabela e conexão com o banco de dados
+from app.schemas import HabilidadeBase, HabilidadeOut # schema de dados
 
-engine, SessionLocal, Base = setup_database()
+engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
@@ -50,3 +49,4 @@ def deletar_habilidade(session, id: int) -> HabilidadeOut | None:
         session.commit()
         return HabilidadeOut.model_validate(habilidade) # Retorna a habilidade removida como schema de saída
     return None
+

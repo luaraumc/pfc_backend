@@ -3,13 +3,11 @@ from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para ti
 from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
 from app.dependencies import setup_database # configuração da conexão com o banco de dados
 
-
-
 engine, SessionLocal, Base = setup_database()
 
 # ===================== TABELAS PRINCIPAIS =====================
 
-# Modelo da tabela curso
+# Modelo da tabela "curso"
 class Curso(Base):
 	__tablename__ = 'curso'
 	id = Column(Integer, primary_key=True, index=True)
@@ -70,6 +68,7 @@ class Compatibilidade(Base):
 
 # ===================== TABELAS RELACIONAIS =====================
 
+# Modelo da tabela "curso_conhecimento"
 class CursoConhecimento(Base):
     __tablename__ = 'curso_conhecimento'
     id = Column(Integer, primary_key=True, index=True)
@@ -79,6 +78,7 @@ class CursoConhecimento(Base):
         UniqueConstraint('curso_id', 'conhecimento_id', name='uq_curso_conhecimento'),
     )
 
+# Modelo da tabela "carreira_habilidade"
 class CarreiraHabilidade(Base):
     __tablename__ = 'carreira_habilidade'
     id = Column(Integer, primary_key=True, index=True)
@@ -88,6 +88,7 @@ class CarreiraHabilidade(Base):
         UniqueConstraint('carreira_id', 'habilidade_id', name='uq_carreira_habilidade'),
     )
 
+# Modelo da tabela "usuario_habilidade"
 class UsuarioHabilidade(Base):
     __tablename__ = 'usuario_habilidade'
     id = Column(Integer, primary_key=True, index=True)
@@ -97,6 +98,7 @@ class UsuarioHabilidade(Base):
         UniqueConstraint('usuario_id', 'habilidade_id', name='uq_usuario_habilidade'),
     )
 
+# Modelo da tabela "conhecimento_habilidade"
 class ConhecimentoHabilidade(Base):
     __tablename__ = 'conhecimento_habilidade'
     id = Column(Integer, primary_key=True, index=True)

@@ -2,10 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.services.usuario import criar_usuario, atualizar_usuario, listar_usuarios, buscar_usuario_por_id
 from sqlalchemy.orm import sessionmaker, Session
 from app.models import Usuario
-from app.dependencies import pegar_sessao, setup_database
+from app.dependencies import pegar_sessao
 from app.main import bcrypt_context
 from app.schemas import UsuarioBase
-
 
 usuarioRouter = APIRouter(prefix="/auth", tags=["auth"])
 
