@@ -4,7 +4,7 @@ from app.models import Habilidade, UsuarioHabilidade
 from sqlalchemy.orm import Session
 from app.models import Usuario
 from app.dependencies import pegar_sessao, verificar_token
-from app.main import bcrypt_context
+from app.config import bcrypt_context
 from app.schemas import UsuarioBase, UsuarioOut, AtualizarUsuarioSchema, AtualizarSenhaSchema, UsuarioHabilidadeBase, UsuarioHabilidadeOut, HabilidadeOut
 
 usuarioRouter = APIRouter(prefix="/usuario", tags=["usuario"])

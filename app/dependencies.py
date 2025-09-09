@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session, sessionmaker
 from fastapi import Depends, HTTPException
+
 from jose import jwt, JWTError
-from app.main import kEY_CRYPT, ALGORITHM
+from app.config import kEY_CRYPT, ALGORITHM, oauth2_schema
 
 """
     Realiza toda a configuração da conexão com o banco de dados e retorna:
@@ -32,12 +33,13 @@ def pegar_sessao():
     finally: 
         session.close()
 
-def verificar_token(token, session: Session = Depends(pegar_sessao)):
+def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depends(pegar_sessao)):
     from app.models import Usuario
     try:
         dic_info = jwt.decode(token, kEY_CRYPT, ALGORITHM)
-        id_usuario = dic_info.get("sub")
-    except JWTError:
+        id_usuario = int(dic_info.get("sub"))
+    except JWTError as erro:
+        print(erro)
         raise HTTPException(status_code=401, detail="Acesso negado, verifique a validade do token")
     # verificar se o token é válido
     # extrair o id do usuário do token
