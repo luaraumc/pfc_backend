@@ -9,13 +9,13 @@ cursoRouter = APIRouter(prefix="/curso", tags=["curso"])
 
 # Listar todos os cursos
 @cursoRouter.get("/", response_model=list[CursoOut]) # response_model: validar e filtrar os dados antes de enviar ao cliente
-async def get_cursos():
-    return listar_cursos()
+async def get_cursos(session: Session = Depends(pegar_sessao)):
+    return listar_cursos(session)
  
 # Buscar curso por ID
 @cursoRouter.get("/{curso_id}", response_model=CursoOut) # response_model: validar e filtrar os dados antes de enviar ao cliente
-async def get_curso(curso_id: int):
-    curso = buscar_curso_por_id(curso_id)
+async def get_curso(curso_id: int, session: Session = Depends(pegar_sessao)):
+    curso = buscar_curso_por_id(session, curso_id)
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado")
     return curso
@@ -28,7 +28,7 @@ async def cadastro(curso_schema: CursoBase, session: Session = Depends(pegar_ses
         raise HTTPException(status_code=400, detail="curso já cadastrado") # se ja existir um curso com esse nome, retorna um erro
     else:
         novo_curso = criar_curso(session, curso_schema)
-        return {"message": f"curso cadastrado com sucesso: {novo_curso.nome}"}
+        return {"message": f"Curso cadastrado com sucesso: {novo_curso.nome}"}
 
 # Atualizar curso
 @cursoRouter.put("/atualizar/{curso_id}")
@@ -39,9 +39,9 @@ async def atualizar(curso_id: int, curso_schema: CursoBase, session: Session = D
     return {"message": f"Curso atualizado com sucesso: {curso.nome}"}
 
 # Deletar curso
-@cursoRouter.delete("/deletar/{curso_id}", response_model=CursoOut) # response_model para retornar os dados do curso deletado para mostrar ao usuário o que foi removido
+@cursoRouter.delete("/deletar/{curso_id}")
 async def deletar(curso_id: int, session: Session = Depends(pegar_sessao)):
     curso = deletar_curso(session, curso_id)
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado")
-    return curso
+    return {"message": f"Curso deletado com sucesso: {curso.nome}"}
