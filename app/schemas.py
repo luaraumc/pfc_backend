@@ -1,10 +1,9 @@
-import datetime
 from pydantic import BaseModel
-
+from datetime import datetime
 
 """
-Classes Base: representam os dados que serão enviados (POST). Não precisam dos campos autoincrement, pois são gerados pelo banco
-Classes Out: herdam das Classes Base e representam os dados que serão retornados (GET). Precisam dos campos autoincrement
+Classes Base: representam os dados que ser達o enviados (POST). N達o precisam dos campos autoincrement, pois s達o gerados pelo banco
+Classes Out: herdam das Classes Base e representam os dados que ser達o retornados (GET). Precisam dos campos autoincrement
 model_config = {'from_attributes': True}: permite que o Pydantic converta automaticamente objetos ORM do SQLAlchemy para schema
 """
 
@@ -18,18 +17,24 @@ class CursoBase(BaseModel):
 class CursoOut(CursoBase):
     id: int
     atualizado_em: datetime
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 # Schema de Carreira
 class CarreiraBase(BaseModel):
     nome: str
+
+    descricao: str | None = None
+
     descricao: str
+
 
 class CarreiraOut(CarreiraBase):
     id: int
     atualizado_em: datetime
 
-    model_config = {'from_attributes': True}
+
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 # Schema de Usuario
 class UsuarioBase(BaseModel):
@@ -41,6 +46,8 @@ class UsuarioBase(BaseModel):
 
 class UsuarioOut(UsuarioBase):
     id: int
+
+
     nome: str
     email: str
     carreira_id: int
@@ -48,7 +55,7 @@ class UsuarioOut(UsuarioBase):
     criado_em: datetime
     atualizado_em: datetime
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 # Schema de Habilidade
 class HabilidadeBase(BaseModel):
@@ -58,7 +65,7 @@ class HabilidadeOut(HabilidadeBase):
     id: int
     atualizado_em: datetime
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 # Schema de Conhecimento
 class ConhecimentoBase(BaseModel):
@@ -68,7 +75,7 @@ class ConhecimentoOut(ConhecimentoBase):
     id: int
     atualizado_em: datetime
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 # Schema de Compatibilidade
 class CompatibilidadeBase(BaseModel):
@@ -81,11 +88,14 @@ class CompatibilidadeOut(CompatibilidadeBase):
     id: int
     atualizado_em: datetime
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
+
 
 # ===================== TABELAS RELACIONAIS =====================
 
 # Schema de CursoConhecimento
+
 class CursoConhecimentoBase(BaseModel):
     curso_id: int
     conhecimento_id: int
@@ -93,9 +103,11 @@ class CursoConhecimentoBase(BaseModel):
 class CursoConhecimentoOut(CursoConhecimentoBase):
     id: int
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
-# Schema de CarreiraHabilidade
+
+#Schema de CarreiraHabilidade
+
 class CarreiraHabilidadeBase(BaseModel):
     carreira_id: int
     habilidade_id: int
@@ -103,7 +115,9 @@ class CarreiraHabilidadeBase(BaseModel):
 class CarreiraHabilidadeOut(CarreiraHabilidadeBase):
     id: int
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
+
 
 # Schema de UsuarioHabilidade
 class UsuarioHabilidadeBase(BaseModel):
@@ -113,9 +127,10 @@ class UsuarioHabilidadeBase(BaseModel):
 class UsuarioHabilidadeOut(UsuarioHabilidadeBase):
     id: int
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
-# Schema de ConhecimentoHabilidade
+#Schema de ConhecimentoHabilidade
+
 class ConhecimentoHabilidadeBase(BaseModel):
     conhecimento_id: int
     habilidade_id: int
@@ -123,4 +138,12 @@ class ConhecimentoHabilidadeBase(BaseModel):
 class ConhecimentoHabilidadeOut(ConhecimentoHabilidadeBase):
     id: int
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
+
+# ===================== SCHEMA DE LOGIN =====================
+class LoginSchema(BaseModel):
+    email: str
+    senha: str
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}

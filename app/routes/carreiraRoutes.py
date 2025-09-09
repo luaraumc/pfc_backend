@@ -1,7 +1,8 @@
+
 from fastapi import APIRouter, HTTPException, Depends
 from app.services.carreira import listar_carreiras, buscar_carreira_por_id, criar_carreira
 from app.schemas import CarreiraBase, CarreiraOut
-from app.dependencies import pegar_sessao
+from app.dependencies import pegar_sessao, setup_database
 from sqlalchemy.orm import sessionmaker, Session
 from app.models import Carreira
 
@@ -10,6 +11,7 @@ carreiraRouter = APIRouter(prefix="/carreira", tags=["carreira"])
 @carreiraRouter.get("/")
 def get_carreiras():
     return listar_carreiras()
+
 
 @carreiraRouter.post("/cadastro_carreira")
 async def cadastro(carreira_schema: CarreiraBase, session: Session = Depends(pegar_sessao)): # passa como parametro os dados que o usuário vai inserir ao acessar a rota e a sessão do banco de dados
@@ -22,6 +24,7 @@ async def cadastro(carreira_schema: CarreiraBase, session: Session = Depends(peg
         nova_carreira = criar_carreira(session, carreira_schema)
         return {"message": f"Carreira cadastrada com sucesso {nova_carreira.nome}"}
     
+
 @carreiraRouter.get("/{carreira_id}")
 def get_carreira(carreira_id: int):
     carreira = buscar_carreira_por_id(carreira_id)

@@ -3,6 +3,7 @@ from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para ti
 from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
 from app.dependencies import setup_database # configuração da conexão com o banco de dados
 
+
 engine, SessionLocal, Base = setup_database()
 
 # ===================== TABELAS PRINCIPAIS =====================
