@@ -9,13 +9,13 @@ carreiraRouter = APIRouter(prefix="/carreira", tags=["carreira"])
 
 # Listar todas as carreiras
 @carreiraRouter.get("/", response_model=list[CarreiraOut]) # response_model: validar e filtrar os dados antes de enviar ao cliente
-async def get_carreiras():
-    return listar_carreiras()
+async def get_carreiras(session: Session = Depends(pegar_sessao)):
+    return listar_carreiras(session)
 
 # Buscar carreira por ID
 @carreiraRouter.get("/{carreira_id}", response_model=CarreiraOut) # response_model: validar e filtrar os dados antes de enviar ao cliente
-async def get_carreira(carreira_id: int):
-    carreira = buscar_carreira_por_id(carreira_id)
+async def get_carreira(carreira_id: int, session: Session = Depends(pegar_sessao)):
+    carreira = buscar_carreira_por_id(session, carreira_id)
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
     return carreira
@@ -29,7 +29,7 @@ async def cadastro(carreira_schema: CarreiraBase, session: Session = Depends(peg
     else:
        
         nova_carreira = criar_carreira(session, carreira_schema)
-        return {"message": f"Carreira cadastrada com sucesso {nova_carreira.nome}"}
+        return {"message": f"Carreira cadastrada com sucesso: {nova_carreira.nome}"}
 
 # Atualizar carreira
 @carreiraRouter.put("/atualizar/{carreira_id}")
@@ -37,12 +37,12 @@ async def atualizar(carreira_id: int, carreira_schema: CarreiraBase, session: Se
     carreira = atualizar_carreira(session, carreira_id, carreira_schema)
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
-    return {"message": f"Carreira atualizada com sucesso {carreira.nome}"}
+    return {"message": f"Carreira atualizada com sucesso: {carreira.nome}"}
 
 # Deletar carreira
-@carreiraRouter.delete("/deletar/{carreira_id}", response_model=CarreiraOut) # response_model para retornar os dados da carreira deletada para mostrar ao usuário o que foi removido
+@carreiraRouter.delete("/deletar/{carreira_id}")
 async def deletar(carreira_id: int, session: Session = Depends(pegar_sessao)):
     carreira = deletar_carreira(session, carreira_id)
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
-    return {"message": f"Carreira deletada com sucesso {carreira.nome}"}
+    return {"message": f"Carreira deletada com sucesso: {carreira.nome}"}
