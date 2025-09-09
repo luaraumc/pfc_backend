@@ -1,5 +1,6 @@
-from app.models import Usuario, setup_database # modelo da tabela e conexão com o banco de dados
-from app.schemas import UsuarioBase, UsuarioOut # schema de dados
+from app.models import Usuario # modelo de tabela definido no arquivo models.py
+from app.dependencies import setup_database # conexão do banco de dados
+from app.schemas import UsuarioBase, UsuarioOut # schema de entrada e saída
 
 engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 
@@ -11,7 +12,7 @@ exclude_unset: gera um dicionário para atualizar apenas os campos que foram inf
 
 # ======================= CRUD =======================
 
-# CREATE - Cria um novo usuário
+# CREATE / POST - Cria um novo usuário
 def criar_usuario(session, usuario_data: UsuarioBase) -> UsuarioOut:
     novo_usuario = Usuario(**usuario_data.model_dump()) # Cria um objeto Usuario a partir dos dados do schema
     session.add(novo_usuario)  # Adiciona no banco
@@ -19,17 +20,22 @@ def criar_usuario(session, usuario_data: UsuarioBase) -> UsuarioOut:
     session.refresh(novo_usuario) # Atualiza o objeto com dados do banco
     return UsuarioOut.model_validate(novo_usuario) # Converte o modelo SQLAlchemy para o schema de saída (UsuarioOut)
 
-# READ - Lista todos os usuários
+# READ / GET - Lista todos os usuários
 def listar_usuarios(session) -> list[UsuarioOut]:
     usuarios = session.query(Usuario).all()  # Busca todos os usuários no banco
     return [UsuarioOut.model_validate(usuario) for usuario in usuarios] # Converte cada usuário para o schema de saída
 
-# READ - Busca um usuário pelo id
+# READ / GET - Busca um usuário pelo id
 def buscar_usuario_por_id(session, id: int) -> UsuarioOut | None:
     usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
     return UsuarioOut.model_validate(usuario) if usuario else None # Se encontrado converte para schema de saída, senão retorna None
 
-# UPDATE - Atualiza os dados de um usuário existente usando schema
+# READ / GET - Busca um usuário pelo email
+def buscar_usuario_por_email(session, email: str) -> UsuarioOut | None:
+    usuario = session.query(Usuario).filter(Usuario.email == email).first()  # Busca o usuário pelo email
+    return UsuarioOut.model_validate(usuario) if usuario else None # Se encontrado converte para schema de saída, senão retorna None
+
+# UPDATE / PUT - Atualiza os dados de um usuário existente usando schema
 def atualizar_usuario(session, id: int, usuario_data: UsuarioBase) -> UsuarioOut | None:
     usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
     if usuario:
@@ -41,7 +47,7 @@ def atualizar_usuario(session, id: int, usuario_data: UsuarioBase) -> UsuarioOut
         return UsuarioOut.model_validate(usuario) # Retorna o usuário atualizado como schema de saída
     return None
 
-# DELETE - Remove um usuário pelo id
+# DELETE / DELETE - Remove um usuário pelo id
 def deletar_usuario(session, id: int) -> UsuarioOut | None:
     usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
     if usuario:

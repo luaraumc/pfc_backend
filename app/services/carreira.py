@@ -1,5 +1,6 @@
-from app.models import Carreira, setup_database # modelo da tabela e conexão com o banco de dados
-from app.schemas import CarreiraBase, CarreiraOut # schema de dados
+from app.models import Carreira # modelo de tabela definido no arquivo models.py
+from app.models import setup_database # conexão do banco de dados
+from app.schemas import CarreiraBase, CarreiraOut # schema de entrada e saída
 
 engine, SessionLocal, Base = setup_database() # configuração do banco de dados
 
@@ -11,7 +12,7 @@ exclude_unset: gera um dicionário para atualizar apenas os campos que foram inf
 
 # ======================= CRUD =======================
 
-# CREATE - Cria uma nova carreira
+# CREATE / POST - Cria uma nova carreira
 def criar_carreira(session, carreira_data: CarreiraBase) -> CarreiraOut:
     nova_carreira = Carreira(**carreira_data.model_dump()) # Cria um objeto Carreira a partir dos dados do schema (Pydantic)
     session.add(nova_carreira)  # Adiciona no banco
@@ -19,17 +20,17 @@ def criar_carreira(session, carreira_data: CarreiraBase) -> CarreiraOut:
     session.refresh(nova_carreira) # Atualiza o objeto com dados do banco
     return CarreiraOut.model_validate(nova_carreira) # Converte o modelo SQLAlchemy para o schema de saída (CarreiraOut)
 
-# READ - Lista todas as carreiras
+# READ / GET - Lista todas as carreiras
 def listar_carreiras(session) -> list[CarreiraOut]:
     carreiras = session.query(Carreira).all()  # Busca todas as carreiras no banco
     return [CarreiraOut.model_validate(carreira) for carreira in carreiras] # Converte cada carreira para o schema de saída
 
-# READ - Busca uma carreira pelo id
+# READ / GET - Busca uma carreira pelo id
 def buscar_carreira_por_id(session, id: int) -> CarreiraOut | None:
     carreira = session.query(Carreira).filter(Carreira.id == id).first()  # Busca a carreira pelo id
     return CarreiraOut.model_validate(carreira) if carreira else None # Se encontrada converte para schema de saída, senão retorna None
 
-# UPDATE - Atualiza os dados de uma carreira existente usando schema
+# UPDATE / PUT - Atualiza os dados de uma carreira existente usando schema
 def atualizar_carreira(session, id: int, carreira_data: CarreiraBase) -> CarreiraOut | None:
     carreira = session.query(Carreira).filter(Carreira.id == id).first()  # Busca a carreira pelo id
     if carreira:
@@ -41,7 +42,7 @@ def atualizar_carreira(session, id: int, carreira_data: CarreiraBase) -> Carreir
         return CarreiraOut.model_validate(carreira) # Retorna a carreira atualizada como schema de saída
     return None
 
-# DELETE - Remove uma carreira pelo id
+# DELETE / DELETE - Remove uma carreira pelo id
 def deletar_carreira(session, id: int) -> CarreiraOut | None:
     carreira = session.query(Carreira).filter(Carreira.id == id).first()  # Busca a carreira pelo id
     if carreira:
