@@ -54,7 +54,7 @@ async def listar_habilidades_usuario(usuario_id: int, session: Session = Depends
     habilidades = session.query(Habilidade).join(UsuarioHabilidade).filter(UsuarioHabilidade.usuario_id == usuario_id).all() # Consulta no banco todas as habilidades relacionadas ao usuário através da tabela relacional
     return [HabilidadeOut.model_validate(h) for h in habilidades] # Converte cada habilidade do banco para o schema HabilidadeOut
 
-# Listar habilidades faltantes para o usuário
+# Listar habilidades faltantes para o usuário (TESTE, POIS AINDA NÃO TEMOS A COMPARAÇÃO DE HABILIDADES X CONHECIMENTOS)
 @usuarioRouter.get("/{usuario_id}/habilidades-faltantes", response_model=list[HabilidadeOut])
 async def listar_habilidades_faltantes(usuario_id: int, session: Session = Depends(pegar_sessao)):
     todas_habilidades = session.query(Habilidade).all() # Busca todas as habilidades no banco
