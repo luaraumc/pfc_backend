@@ -24,7 +24,3 @@ async def cadastro(usuario_schema: UsuarioBase, session: Session = Depends(pegar
         novo_usuario = criar_usuario(session, usuario_schema)
         return {"message": f"Usuário cadastrado com sucesso {novo_usuario.nome}"}
     
-@usuarioRouter.get("/carreiras")
-async def listar_carreiras(session: Session = Depends(pegar_sessao)):
-    carreiras = session.execute("SELECT * FROM carreiras").fetchall()
-    return listar_usuarios(session)
