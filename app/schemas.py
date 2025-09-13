@@ -84,6 +84,18 @@ class CompatibilidadeOut(CompatibilidadeBase):
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
+# Schema de RecuperacaoSenha
+class RecuperacaoSenhaBase(BaseModel):
+    usuario_id: int
+    email: str
+    codigo_recuperacao: str
+    codigo_expira_em: datetime
+
+class RecuperacaoSenhaOut(RecuperacaoSenhaBase):
+    id: int
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
 # ===================== TABELAS RELACIONAIS =====================
 
 # Schema de CursoConhecimento
