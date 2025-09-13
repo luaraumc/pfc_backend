@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.services.usuario import criar_usuario, atualizar_usuario, buscar_usuario_por_email
+from app.services.usuario import criar_usuario
 from sqlalchemy.orm import Session
 from app.models import Usuario, RecuperacaoSenha
 from app.dependencies import pegar_sessao, verificar_token
