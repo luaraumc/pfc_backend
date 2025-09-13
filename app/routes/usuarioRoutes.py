@@ -19,11 +19,11 @@ async def get_usuario(usuario_id: int, session: Session = Depends(pegar_sessao))
 
 # Atualizar dados de usuário
 @usuarioRouter.put("/atualizar/{usuario_id}")
-async def atualizar_usuario(usuario_id: int, usuario_data: AtualizarUsuarioSchema, session: Session = Depends(pegar_sessao)):
+async def atualizar_usuario_route(usuario_id: int, usuario_data: AtualizarUsuarioSchema, session: Session = Depends(pegar_sessao)):
     usuario = buscar_usuario_por_id(session, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    usuario = atualizar_usuario(session, usuario, usuario_data)
+    usuario = atualizar_usuario(session, usuario_id, usuario_data)
     return usuario
 
 # Atualizar senha do usuário
