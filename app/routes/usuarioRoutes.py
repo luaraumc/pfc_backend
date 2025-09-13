@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.services.usuario import atualizar_usuario, buscar_usuario_por_id
+from app.services. usuarioHabilidade import criar_usuario_habilidade
 from app.models import Habilidade, UsuarioHabilidade
 from sqlalchemy.orm import Session
 from app.models import Usuario
@@ -19,7 +20,7 @@ async def get_usuario(usuario_id: int, session: Session = Depends(pegar_sessao))
 
 # Atualizar dados de usuário
 @usuarioRouter.put("/atualizar/{usuario_id}")
-async def atualizar_usuario(usuario_id: int, usuario_data: AtualizarUsuarioSchema, session: Session = Depends(pegar_sessao)):
+async def atualizar_usuario(usuario_id: int, usuario_data: AtualizarUsuarioSchema  = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     usuario = buscar_usuario_por_id(session, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -28,7 +29,7 @@ async def atualizar_usuario(usuario_id: int, usuario_data: AtualizarUsuarioSchem
 
 # Atualizar senha do usuário
 @usuarioRouter.put("/atualizar-senha/{usuario_id}")
-async def atualizar_senha(usuario_id: int, nova_senha: AtualizarSenhaSchema, session: Session = Depends(pegar_sessao)):
+async def atualizar_senha(usuario_id: int, nova_senha: AtualizarSenhaSchema  = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     usuario = buscar_usuario_por_id(session, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -38,7 +39,7 @@ async def atualizar_senha(usuario_id: int, nova_senha: AtualizarSenhaSchema, ses
 
 # Deletar usuário
 @usuarioRouter.delete("/deletar/{usuario_id}", response_model=UsuarioOut) # response_model para retornar os dados do usuário deletado para mostrar ao usuário o que foi removido
-async def deletar_usuario(usuario_id: int, session: Session = Depends(pegar_sessao)):
+async def deletar_usuario(usuario_id: int  = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     usuario = buscar_usuario_por_id(session, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -47,7 +48,7 @@ async def deletar_usuario(usuario_id: int, session: Session = Depends(pegar_sess
 
 # Listar habilidades do usuário
 @usuarioRouter.get("/{usuario_id}/habilidades", response_model=list[HabilidadeOut])
-async def listar_habilidades_usuario(usuario_id: int, session: Session = Depends(pegar_sessao)):
+async def listar_habilidades_usuario(usuario_id: int  = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     usuario = buscar_usuario_por_id(session, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -56,23 +57,20 @@ async def listar_habilidades_usuario(usuario_id: int, session: Session = Depends
 
 # Listar habilidades faltantes para o usuário
 @usuarioRouter.get("/{usuario_id}/habilidades-faltantes", response_model=list[HabilidadeOut])
-async def listar_habilidades_faltantes(usuario_id: int, session: Session = Depends(pegar_sessao)):
+async def listar_habilidades_faltantes(usuario_id: int  = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     todas_habilidades = session.query(Habilidade).all() # Busca todas as habilidades no banco
     habilidades_usuario = session.query(Habilidade).join(UsuarioHabilidade).filter(UsuarioHabilidade.usuario_id == usuario_id).all() # Consulta no banco as habilidades que o usuário já possui
     faltantes = [h for h in todas_habilidades if h not in habilidades_usuario] # Filtra as habilidades que o usuário ainda não possui
     return [HabilidadeOut.model_validate(h) for h in faltantes] # Converte cada habilidade faltante para o schema HabilidadeOut
 
 # Adicionar habilidade ao usuário
-@usuarioRouter.post("/{usuario_id}/adicionar-habilidade/{habilidade_id}", response_model=UsuarioHabilidadeOut)
-async def adicionar_habilidade_usuario(usuario_id: int, habilidade_id: int, session: Session = Depends(pegar_sessao)):
-    existe = session.query(UsuarioHabilidade).filter_by(usuario_id=usuario_id, habilidade_id=habilidade_id).first() # Verifica se a relação entre usuário e habilidade já existe
+@usuarioRouter.post("/{usuario_id}/adicionar-habilidade/{habilidade_id}")
+async def adicionar_habilidade_usuario(usuario_habilidade: UsuarioHabilidadeBase, session: Session = Depends(pegar_sessao)):
+    existe = session.query(UsuarioHabilidade).filter(UsuarioHabilidade.usuario_id == usuario_habilidade.usuario_id, UsuarioHabilidade.habilidade_id == usuario_habilidade.habilidade_id).first() # Verifica se a relação entre usuário e habilidade já existe
     if existe:
-        raise HTTPException(status_code=400, detail="Habilidade já adicionada ao usuário")
-    nova = UsuarioHabilidade(usuario_id=usuario_id, habilidade_id=habilidade_id) # Cria uma nova relação entre usuário e habilidade
-    session.add(nova)
-    session.commit()
-    session.refresh(nova)
-    return UsuarioHabilidadeOut.model_validate(nova) # Retorna o vínculo criado no formato do schema
+        raise HTTPException(status_code=400, detail="Habilidade já adicionada ao usurio")
+    nova = criar_usuario_habilidade(session, usuario_habilidade) # Cria uma nova relação entre usuário e habilidade
+    return {"message": f"Habilidade cadastrada com sucesso {nova.habilidade_id} para o usuário {nova.usuario_id}"}
 
 # Remover habilidade do usuário
 @usuarioRouter.delete("/{usuario_id}/remover-habilidade/{habilidade_id}", response_model=UsuarioHabilidadeOut)
