@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session, sessionmaker
 from fastapi import Depends, HTTPException
 from jose import jwt, JWTError
-from app.main import kEY_CRYPT, ALGORITHM
+from app.config import kEY_CRYPT, ALGORITHM
 
 """
     Realiza toda a configuração da conexão com o banco de dados e retorna:
