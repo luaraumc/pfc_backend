@@ -62,16 +62,7 @@ async def listar_habilidades_usuario_route(
     return listar_habilidades_usuario(session, usuario_id)
 
 # Listar habilidades faltantes para o usuário - AUTENTICADA
-@usuarioRouter.get("/{usuario_id}/habilidades-faltantes", response_model=list[HabilidadeOut])
-async def listar_habilidades_faltantes(
-    usuario_id: int,
-    usuario: Usuario = Depends(verificar_token),
-    session: Session = Depends(pegar_sessao)
-):
-    todas_habilidades = session.query(Habilidade).all()
-    habilidades_usuario = session.query(Habilidade).join(UsuarioHabilidade).filter(UsuarioHabilidade.usuario_id == usuario_id).all()
-    faltantes = [h for h in todas_habilidades if h not in habilidades_usuario]
-    return [HabilidadeOut.model_validate(h) for h in faltantes]
+############### FAZER APÓS CRIAR COMPARAÇÃO ###############
 
 # Adicionar habilidade ao usuário - AUTENTICADA
 @usuarioRouter.post("/{usuario_id}/adicionar-habilidade/{habilidade_id}", response_model=UsuarioHabilidadeOut)
@@ -99,3 +90,4 @@ async def remover_habilidade_usuario_route(
     if not resultado:
         raise HTTPException(status_code=404, detail="Relação usuário-habilidade não encontrada")
     return resultado
+
