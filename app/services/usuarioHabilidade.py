@@ -13,7 +13,7 @@ exclude_unset: gera um dicionário para atualizar apenas os campos que foram inf
 
 # ======================= CRUD =======================
 
-# CREATE / POST - Cria uma nova habilidade para o usuário
+# CREATE / POST - Cria uma nova relação entre usuário e habilidade
 def criar_usuario_habilidade(session, usuario_habilidade_data: UsuarioHabilidadeBase) -> UsuarioHabilidadeOut:
     novo_usuario_habilidade = UsuarioHabilidade(**usuario_habilidade_data.model_dump()) # Cria um objeto UsuarioHabilidade a partir dos dados do schema
     session.add(novo_usuario_habilidade)  # Adiciona no banco
