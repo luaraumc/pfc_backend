@@ -54,6 +54,44 @@ async def deletar(
     usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
     session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
 ):
+
+# ======================= HABILIDADES DA CARREIRA =======================
+
+# Listar habilidades da carreira
+@carreiraRouter.get("/{carreira_id}/habilidades", response_model=list[CarreiraHabilidadeOut])
+async def listar_habilidades_carreira_route(
+    carreira_id: int,
+    session: Session = Depends(pegar_sessao)
+):
+    return listar_carreira_habilidades(session, carreira_id)
+
+# Adicionar habilidade a carreira - AUTENTICADA
+@carreiraRouter.post("/{carreira_id}/adicionar-habilidade/{habilidade_id}", response_model=CarreiraHabilidadeOut)
+async def adicionar_habilidade_carreira_route(
+    carreira_id: int,
+    habilidade_id: int,
+    usuario: dict = Depends(verificar_token),
+    session: Session = Depends(pegar_sessao)
+):
+    from app.schemas import CarreiraHabilidadeBase
+    existe = session.query(CarreiraHabilidade).filter_by(carreira_id=carreira_id, habilidade_id=habilidade_id).first()
+    if existe:
+        raise HTTPException(status_code=400, detail="Habilidade já adicionada à carreira")
+    carreira_habilidade_data = CarreiraHabilidadeBase(carreira_id=carreira_id, habilidade_id=habilidade_id)
+    return criar_carreira_habilidade(session, carreira_habilidade_data)
+
+# Remover habilidade da carreira - AUTENTICADA
+@carreiraRouter.delete("/{carreira_id}/remover-habilidade/{habilidade_id}", response_model=CarreiraHabilidadeOut)
+async def remover_habilidade_carreira_route(
+    carreira_id: int,
+    habilidade_id: int,
+    usuario: dict = Depends(verificar_token),
+    session: Session = Depends(pegar_sessao)
+):
+    resultado = remover_carreira_habilidade(session, carreira_id, habilidade_id)
+    if not resultado:
+        raise HTTPException(status_code=404, detail="Relação carreira-habilidade não encontrada")
+    return resultado
     carreira = deletar_carreira(session, carreira_id) # chama a função de serviço para deletar a carreira
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
