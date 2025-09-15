@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends # cria dependências e exceções HTTP
 from app.services.carreira import criar_carreira, listar_carreiras, buscar_carreira_por_id, atualizar_carreira, deletar_carreira # serviços relacionados a carreira
+from app.services.carreiraHabilidade import criar_carreira_habilidade, listar_carreira_habilidades, remover_carreira_habilidade # serviços para manipular habilidades da carreira
 from app.schemas import CarreiraBase, CarreiraOut # schemas para validação de dados
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
