@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from datetime import datetime
+from pydantic import BaseModel # criação dos schemas
+from datetime import datetime # campos de data e hora
 
 """
 Classes Base: representam os dados que serão enviados (POST). Não precisam dos campos autoincrement, pois são gerados pelo banco
@@ -160,4 +160,9 @@ class AtualizarUsuarioSchema(BaseModel):
     curso_id: int
 
 class AtualizarSenhaSchema(BaseModel):
+    nova_senha: str
+
+class ConfirmarNovaSenhaSchema(BaseModel):
+    email: str
+    codigo: str
     nova_senha: str
