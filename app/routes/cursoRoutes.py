@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends # cria dependências e exceções HTTP
 from app.services.curso import criar_curso, listar_cursos, buscar_curso_por_id, atualizar_curso, deletar_curso # serviços relacionados ao curso
+from app.services.cursoConhecimento import criar_curso_conhecimento, listar_curso_conhecimentos, remover_curso_conhecimento # serviços para manipular conhecimentos do curso
 from app.schemas import CursoBase, CursoOut # schemas para validação de dados
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
 from app.dependencies import pegar_sessao, verificar_token # cria sessões com o banco de dados e verifica o token
@@ -58,3 +59,41 @@ async def deletar(
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado")
     return {"message": f"Curso deletado com sucesso: {curso.nome}"}
+
+# ======================= CONHECIMENTOS DO CURSO =======================
+
+# Listar conhecimentos do curso
+@cursoRouter.get("/{curso_id}/conhecimentos", response_model=list[CursoConhecimentoOut])
+async def listar_conhecimentos_curso_route(
+    curso_id: int,
+    session: Session = Depends(pegar_sessao)
+):
+    return listar_curso_conhecimentos(session, curso_id)
+
+# Adicionar conhecimento ao curso - AUTENTICADA
+@cursoRouter.post("/{curso_id}/adicionar-conhecimento/{conhecimento_id}", response_model=CursoConhecimentoOut)
+async def adicionar_conhecimento_curso_route(
+    curso_id: int,
+    conhecimento_id: int,
+    usuario: dict = Depends(verificar_token),
+    session: Session = Depends(pegar_sessao)
+):
+    from app.schemas import CursoConhecimentoBase
+    existe = session.query(CursoConhecimento).filter_by(curso_id=curso_id, conhecimento_id=conhecimento_id).first()
+    if existe:
+        raise HTTPException(status_code=400, detail="Conhecimento já adicionado ao curso")
+    curso_conhecimento_data = CursoConhecimentoBase(curso_id=curso_id, conhecimento_id=conhecimento_id)
+    return criar_curso_conhecimento(session, curso_conhecimento_data)
+
+# Remover conhecimento do curso - AUTENTICADA
+@cursoRouter.delete("/{curso_id}/remover-conhecimento/{conhecimento_id}", response_model=CursoConhecimentoOut)
+async def remover_conhecimento_curso_route(
+    curso_id: int,
+    conhecimento_id: int,
+    usuario: dict = Depends(verificar_token),
+    session: Session = Depends(pegar_sessao)
+):
+    resultado = remover_curso_conhecimento(session, curso_id, conhecimento_id)
+    if not resultado:
+        raise HTTPException(status_code=404, detail="Relação curso-conhecimento não encontrada")
+    return resultado
