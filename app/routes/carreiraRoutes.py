@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends
-from app.services.carreira import criar_carreira, listar_carreiras, buscar_carreira_por_id, atualizar_carreira, deletar_carreira
-from app.schemas import CarreiraBase, CarreiraOut
-from app.dependencies import pegar_sessao
-from sqlalchemy.orm import Session
-from app.models import Carreira
+from fastapi import APIRouter, HTTPException, Depends # cria dependências e exceções HTTP
+from app.services.carreira import criar_carreira, listar_carreiras, buscar_carreira_por_id, atualizar_carreira, deletar_carreira # serviços relacionados a carreira
+from app.schemas import CarreiraBase, CarreiraOut # schemas para validação de dados
+from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
+from sqlalchemy.orm import Session # cria sessões com o banco de dados
+from app.models import Carreira # modelo de tabela definido no arquivo models.py
 
+# Inicializa o router
 carreiraRouter = APIRouter(prefix="/carreira", tags=["carreira"])
 
 # Listar todas as carreiras
@@ -22,27 +23,38 @@ async def get_carreira(carreira_id: int, session: Session = Depends(pegar_sessao
 
 # Cadastrar carreira
 @carreiraRouter.post("/cadastro")
-async def cadastro(carreira_schema: CarreiraBase, session: Session = Depends(pegar_sessao)): # passa como parametro os dados que o usuário tem que inserir ao acessar a rota e a sessão do banco de dados
-    carreira = session.query(Carreira).filter(Carreira.nome == carreira_schema.nome).first() # verifica se a carreira já existe no banco de dados. (first pega o primeiro resultado que encontrar, se encontrar algum resultado, significa que a carreira já existe)
-    if carreira: 
-        raise HTTPException(status_code=400, detail="Carreira já cadastrada") # se ja existir uma carreira com esse nome, retorna um erro
-    else:
-       
-        nova_carreira = criar_carreira(session, carreira_schema)
-        return {"message": f"Carreira cadastrada com sucesso: {nova_carreira.nome}"}
+async def cadastro(
+    carreira_schema: CarreiraBase, # passa como parametro os dados que o usuário tem que inserir ao acessar a rota
+    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
+):
+    carreira = session.query(Carreira).filter(Carreira.nome == carreira_schema.nome).first() # verifica se a carreira já existe no banco de dados
+    if carreira:
+        raise HTTPException(status_code=400, detail="Carreira já cadastrada")
+    nova_carreira = criar_carreira(session, carreira_schema) # se não existir, cria a carreira
+    return {"message": f"Carreira cadastrada com sucesso: {nova_carreira.nome}"}
 
 # Atualizar carreira
 @carreiraRouter.put("/atualizar/{carreira_id}")
-async def atualizar(carreira_id: int, carreira_schema: CarreiraBase, session: Session = Depends(pegar_sessao)):
-    carreira = atualizar_carreira(session, carreira_id, carreira_schema)
+async def atualizar(
+    carreira_id: int, # ID da carreira a ser atualizada
+    carreira_schema: CarreiraBase, # passa como parametro os dados que o usuário tem que inserir ao acessar a rota
+    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
+):
+    carreira = atualizar_carreira(session, carreira_id, carreira_schema) # chama a função de serviço para atualizar a carreira
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
     return {"message": f"Carreira atualizada com sucesso: {carreira.nome}"}
 
 # Deletar carreira
 @carreiraRouter.delete("/deletar/{carreira_id}")
-async def deletar(carreira_id: int, session: Session = Depends(pegar_sessao)):
-    carreira = deletar_carreira(session, carreira_id)
+async def deletar(
+    carreira_id: int, # ID da carreira a ser deletada
+    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
+):
+    carreira = deletar_carreira(session, carreira_id) # chama a função de serviço para deletar a carreira
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
     return {"message": f"Carreira deletada com sucesso: {carreira.nome}"}
