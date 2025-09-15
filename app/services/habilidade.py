@@ -1,15 +1,9 @@
-
 from app.models import Habilidade # modelo de tabela definido no arquivo models.py
-from app.models import setup_database # conexão do banco de dados
-from app.schemas import HabilidadeBase, HabilidadeOut # conexão do banco de dados
+from app.dependencies import setup_database # conexão do banco de dados
+from app.schemas import HabilidadeBase, HabilidadeOut # schema de entrada e saída
 
-engine, SessionLocal, Base = setup_database() # configuração do banco de dados
-
-"""
-model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
-model_validate: converte um objeto em um schema Pydantic para retornar dados das funções CRUD no formato esperado pela API
-exclude_unset: gera um dicionário para atualizar apenas os campos que foram informados, sem sobrescrever os demais
-"""
+# Inicializa a conexão com o banco de dados
+engine, SessionLocal, Base = setup_database()
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
