@@ -1,8 +1,9 @@
 from app.models import Curso # modelo de tabela definido no arquivo models.py
-from app.models import setup_database # conexão do banco de dados
+from app.dependencies import setup_database # conexão do banco de dados
 from app.schemas import CursoBase, CursoOut # schema de entrada e saída
 
-engine, SessionLocal, Base = setup_database() # configuração do banco de dados
+# Inicializa a conexão com o banco de dados
+engine, SessionLocal, Base = setup_database()
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
@@ -50,4 +51,3 @@ def deletar_curso(session, id: int) -> CursoOut | None:
         session.commit()
         return CursoOut.model_validate(curso) # Retorna o curso removido como schema de saída
     return None
-
