@@ -1,7 +1,7 @@
-from dotenv import load_dotenv
-from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer
-import os
+from dotenv import load_dotenv # carregar as variáveis de ambiente
+from passlib.context import CryptContext # criptografia de senhas
+from fastapi.security import OAuth2PasswordBearer # autenticação via OAuth2
+import os # interagir com o sistema operacional
 
 load_dotenv()
 
