@@ -1,7 +1,9 @@
-from app.models import Conhecimento, setup_database # modelo da tabela e conexão com o banco de dados
-from app.schemas import ConhecimentoBase, ConhecimentoOut # schema de dados
+from app.models import Conhecimento # modelo de tabela definido no arquivo models.py
+from app.dependencies import setup_database # conexão do banco de dados
+from app.schemas import ConhecimentoBase, ConhecimentoOut # schema de entrada e saída
 
-engine, SessionLocal, Base = setup_database() # configuração do banco de dados
+# Inicializa a conexão com o banco de dados
+engine, SessionLocal, Base = setup_database()
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
