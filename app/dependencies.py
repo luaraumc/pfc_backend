@@ -1,7 +1,7 @@
-from sqlalchemy.orm import Session, sessionmaker
-from fastapi import Depends, HTTPException
-from jose import jwt, JWTError
-from app.config import kEY_CRYPT, ALGORITHM
+from sqlalchemy.orm import Session, sessionmaker # cria sessões para interagir com o banco
+from fastapi import Depends, HTTPException # cria dependências e exceções HTTP
+from jose import jwt, JWTError # manipula JSON Web Tokens
+from app.config import kEY_CRYPT, ALGORITHM, oauth2_schema # importa configurações de segurança
 
 """
     Realiza toda a configuração da conexão com o banco de dados e retorna:
@@ -10,6 +10,7 @@ from app.config import kEY_CRYPT, ALGORITHM
     - Base: classe base para os modelos ORM
 """
 
+# Configuração da conexão com o banco de dados
 def setup_database():
     import os
     from dotenv import load_dotenv
@@ -23,8 +24,10 @@ def setup_database():
     Base = declarative_base()
     return engine, SessionLocal, Base
 
+# Inicializa a conexão com o banco de dados
 engine, SessionLocal, Base = setup_database()
 
+# Obter uma sessão do banco de dados
 def pegar_sessao():
     try:
         session = SessionLocal()
@@ -32,16 +35,15 @@ def pegar_sessao():
     finally: 
         session.close()
 
+# Verificar o token JWT e obter o usuário autenticado
 def verificar_token(token, session: Session = Depends(pegar_sessao)):
     from app.models import Usuario
     try:
-        dic_info = jwt.decode(token, kEY_CRYPT, ALGORITHM)
-        id_usuario = dic_info.get("sub")
+        dic_info = jwt.decode(token, kEY_CRYPT, ALGORITHM) # decodifica o token para extrair as informações
+        id_usuario = dic_info.get("sub") # extrai o id do usuário do token
     except JWTError:
         raise HTTPException(status_code=401, detail="Acesso negado, verifique a validade do token")
-    # verificar se o token é válido
-    # extrair o id do usuário do token
-    usuario = session.query(Usuario).filter(Usuario.id==id_usuario).first()
+    usuario = session.query(Usuario).filter(Usuario.id==id_usuario).first() # busca o usuário na sessão
     if not usuario:
         raise HTTPException(status_code=401, detail="Acesso inválido")
     return usuario
