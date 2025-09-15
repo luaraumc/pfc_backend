@@ -3,6 +3,7 @@ from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para ti
 from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
 from app.dependencies import setup_database # configuração da conexão com o banco de dados
 
+# Inicializa a conexão com o banco de dados
 engine, SessionLocal, Base = setup_database()
 
 # ===================== TABELAS PRINCIPAIS =====================
@@ -63,6 +64,17 @@ class Compatibilidade(Base):
 	usuario = relationship('Usuario', backref='compatibilidades')
 	carreira = relationship('Carreira', backref='compatibilidades')
 	curso = relationship('Curso', backref='compatibilidades')
+
+# Modelo da tabela "recuperacao_senha"
+class RecuperacaoSenha(Base):
+    __tablename__ = "recuperacao_senha"
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuario.id"), nullable=False)
+    email = Column(String(150), ForeignKey("usuario.email"), nullable=False)
+    codigo_recuperacao = Column(String(255), nullable=False)
+    codigo_expira_em = Column(DateTime, nullable=False)
+
+    usuario = relationship("Usuario", backref="recuperacoes_senha", foreign_keys=[usuario_id])
 	
 # backref: cria um relacionamento bidirecional entre os modelos
 
