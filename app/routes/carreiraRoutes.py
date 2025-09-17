@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends # cria dependências e exc
 from app.services.carreira import criar_carreira, listar_carreiras, buscar_carreira_por_id, atualizar_carreira, deletar_carreira # serviços relacionados a carreira
 from app.services.carreiraHabilidade import criar_carreira_habilidade, listar_carreira_habilidades, remover_carreira_habilidade # serviços para manipular habilidades da carreira
 from app.schemas import CarreiraBase, CarreiraOut, CarreiraHabilidadeOut  # schemas para validação de dados
-from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
+from app.dependencies import pegar_sessao, verificar_token, requer_admin # pegar a sessão do banco de dados, verificar o token e requerer admin
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
 from app.models import Carreira, CarreiraHabilidade # modelo de tabela definido no arquivo models.py
 
@@ -26,7 +26,7 @@ async def get_carreira(carreira_id: int, session: Session = Depends(pegar_sessao
 @carreiraRouter.post("/cadastro")
 async def cadastro(
     carreira_schema: CarreiraBase, # passa como parametro os dados que o usuário tem que inserir ao acessar a rota
-    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
 ):
     carreira = session.query(Carreira).filter(Carreira.nome == carreira_schema.nome).first() # verifica se a carreira já existe no banco de dados
@@ -40,7 +40,7 @@ async def cadastro(
 async def atualizar(
     carreira_id: int, # ID da carreira a ser atualizada
     carreira_schema: CarreiraBase, # passa como parametro os dados que o usuário tem que inserir ao acessar a rota
-    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
 ):
     carreira = atualizar_carreira(session, carreira_id, carreira_schema) # chama a função de serviço para atualizar a carreira
@@ -52,7 +52,7 @@ async def atualizar(
 @carreiraRouter.delete("/deletar/{carreira_id}")
 async def deletar(
     carreira_id: int, # ID da carreira a ser deletada
-    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
 ):
     carreira = deletar_carreira(session, carreira_id) # chama a função de serviço para deletar a carreira
@@ -75,7 +75,7 @@ async def listar_habilidades_carreira_route(
 async def adicionar_habilidade_carreira_route(
     carreira_id: int,
     habilidade_id: int,
-    usuario: dict = Depends(verificar_token),
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao)
 ):
     from app.schemas import CarreiraHabilidadeBase
@@ -90,7 +90,7 @@ async def adicionar_habilidade_carreira_route(
 async def remover_habilidade_carreira_route(
     carreira_id: int,
     habilidade_id: int,
-    usuario: dict = Depends(verificar_token),
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao)
 ):
     resultado = remover_carreira_habilidade(session, carreira_id, habilidade_id)
