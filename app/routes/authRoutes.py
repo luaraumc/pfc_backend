@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException # cria dependências e exc
 from fastapi.security import OAuth2PasswordRequestForm # esquema de segurança para autenticação
 from app.services.usuario import criar_usuario # serviços relacionados ao usuário
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.models import Usuario, RecuperacaoSenha # modelo de tabela definido no arquivo models.py
+from app.models import Usuario, RecuperacaoSenha, Carreira, Curso
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from app.config import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, kEY_CRYPT # configuração de criptografia e autenticação
 from app.schemas import UsuarioBase, LoginSchema, ConfirmarNovaSenhaSchema # schemas para validação de dados
@@ -23,12 +23,27 @@ authRouter = APIRouter(prefix="/auth", tags=["auth"])
 @authRouter.post("/cadastro")
 async def cadastro(usuario_schema: UsuarioBase, session: Session = Depends(pegar_sessao)): # passa como parametro os dados que o usuário tem que inserir ao acessar a rota e a sessão do banco de dados
     usuario = session.query(Usuario).filter(Usuario.email == usuario_schema.email).first() # verifica se o email já existe no banco de dados. (first pega o primeiro resultado que encontrar, se encontrar algum resultado, significa que o email já existe)
-    if usuario: 
+    if usuario:
         raise HTTPException(status_code=400, detail="Email já cadastrado") # se ja existir um usuario com esse email, retorna um erro
-    else:
-        usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) # criptografa a senha do usuário
-        novo_usuario = criar_usuario(session, usuario_schema) # se não existir, cria o usuário
-        return {"message": f"Usuário cadastrado com sucesso {novo_usuario.nome}"}
+
+    # Normaliza 0 -> None para evitar violação de FK
+    if usuario_schema.carreira_id == 0:
+        usuario_schema.carreira_id = None
+    if usuario_schema.curso_id == 0:
+        usuario_schema.curso_id = None
+
+    # Se não é admin, exige carreira e curso válidos
+    if not usuario_schema.admin:
+        if usuario_schema.carreira_id is None or usuario_schema.curso_id is None:
+            raise HTTPException(status_code=400, detail="carreira_id e curso_id são obrigatórios para usuários não-admin")
+        if session.get(Carreira, usuario_schema.carreira_id) is None:
+            raise HTTPException(status_code=400, detail="Carreira inexistente")
+        if session.get(Curso, usuario_schema.curso_id) is None:
+            raise HTTPException(status_code=400, detail="Curso inexistente")
+
+    usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) # criptografa a senha do usuário
+    novo_usuario = criar_usuario(session, usuario_schema) # se não existir, cria o usuário
+    return {"message": f"Usuário cadastrado com sucesso {novo_usuario.nome}"}
 
 # Login de usuário
 @authRouter.post("/login")
