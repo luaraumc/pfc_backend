@@ -45,6 +45,15 @@ def atualizar_usuario(session, id: int, usuario_data: UsuarioBase) -> UsuarioOut
         return UsuarioOut.model_validate(usuario) # Retorna o usuário atualizado como schema de saída
     return None
 
+def atualizar_senha(session, id: int, nova_senha: str) -> UsuarioOut | None:
+    usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
+    if usuario:
+        usuario.senha = nova_senha
+        session.commit()
+        session.refresh(usuario)
+        return UsuarioOut.model_validate(usuario) # Retorna o usuário atualizado como schema de saída
+    return None
+
 # DELETE / DELETE - Remove um usuário pelo id
 def deletar_usuario(session, id: int) -> UsuarioOut | None:
     usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
