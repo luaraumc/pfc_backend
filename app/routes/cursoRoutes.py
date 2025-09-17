@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends # cria dependências e exceções HTTP
 from app.services.curso import criar_curso, listar_cursos, buscar_curso_por_id, atualizar_curso, deletar_curso # serviços relacionados ao curso
 from app.services.cursoConhecimento import criar_curso_conhecimento, listar_curso_conhecimentos, remover_curso_conhecimento # serviços para manipular conhecimentos do curso
-from app.schemas import CursoBase, CursoOut # schemas para validação de dados
+from app.schemas import CursoBase, CursoOut, CursoConhecimentoOut # schemas para validação de dados
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
 from app.dependencies import pegar_sessao, verificar_token # cria sessões com o banco de dados e verifica o token
-from app.models import Curso # modelo de tabela definido no arquivo models.py
+from app.models import Curso, Usuario, CursoConhecimento # modelo de tabela definido no arquivo models.py
 
 # Inicializa o router
 cursoRouter = APIRouter(prefix="/curso", tags=["curso"])
@@ -52,7 +52,7 @@ async def atualizar(
 @cursoRouter.delete("/deletar/{curso_id}")
 async def deletar(
     curso_id: int, # ID do curso a ser deletado
-    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    usuario: Usuario = Depends(verificar_token), # verifica o token de acesso do usuário
     session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
 ):
     curso = deletar_curso(session, curso_id) # chama a função de serviço para deletar o curso

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends # cria dependências e exceções HTTP
 from app.services.carreira import criar_carreira, listar_carreiras, buscar_carreira_por_id, atualizar_carreira, deletar_carreira # serviços relacionados a carreira
 from app.services.carreiraHabilidade import criar_carreira_habilidade, listar_carreira_habilidades, remover_carreira_habilidade # serviços para manipular habilidades da carreira
-from app.schemas import CarreiraBase, CarreiraOut # schemas para validação de dados
+from app.schemas import CarreiraBase, CarreiraOut, CarreiraHabilidadeOut  # schemas para validação de dados
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.models import Carreira # modelo de tabela definido no arquivo models.py
+from app.models import Carreira, CarreiraHabilidade # modelo de tabela definido no arquivo models.py
 
 # Inicializa o router
 carreiraRouter = APIRouter(prefix="/carreira", tags=["carreira"])
@@ -22,7 +22,7 @@ async def get_carreira(carreira_id: int, session: Session = Depends(pegar_sessao
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
     return carreira
 
-# Cadastrar carreira
+# Cadastrar carreira - AUTENTICADA
 @carreiraRouter.post("/cadastro")
 async def cadastro(
     carreira_schema: CarreiraBase, # passa como parametro os dados que o usuário tem que inserir ao acessar a rota
@@ -35,7 +35,7 @@ async def cadastro(
     nova_carreira = criar_carreira(session, carreira_schema) # se não existir, cria a carreira
     return {"message": f"Carreira cadastrada com sucesso: {nova_carreira.nome}"}
 
-# Atualizar carreira
+# Atualizar carreira - AUTENTICADA
 @carreiraRouter.put("/atualizar/{carreira_id}")
 async def atualizar(
     carreira_id: int, # ID da carreira a ser atualizada
@@ -48,7 +48,7 @@ async def atualizar(
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
     return {"message": f"Carreira atualizada com sucesso: {carreira.nome}"}
 
-# Deletar carreira
+# Deletar carreira - AUTENTICADA
 @carreiraRouter.delete("/deletar/{carreira_id}")
 async def deletar(
     carreira_id: int, # ID da carreira a ser deletada
@@ -58,7 +58,7 @@ async def deletar(
     carreira = deletar_carreira(session, carreira_id) # chama a função de serviço para deletar a carreira
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
-    return {"message": f"Carreira deletada com sucesso: {carreira.nome}"}
+    return {"message": f"Carreira deletada com sucesso: {carreira.nome}"}    
 
 # ======================= HABILIDADES DA CARREIRA =======================
 
@@ -97,3 +97,4 @@ async def remover_habilidade_carreira_route(
     if not resultado:
         raise HTTPException(status_code=404, detail="Relação carreira-habilidade não encontrada")
     return resultado
+    

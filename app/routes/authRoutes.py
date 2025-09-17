@@ -37,7 +37,7 @@ async def login(login_schema: LoginSchema, session: Session = Depends(pegar_sess
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos")
     else:
         access_token = criar_token(usuario.id) # cria o token de acesso
-        refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7)) # cria o token de atualização (30 dias)
+        refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7)) # cria o token de atualização (7 dias)
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -101,7 +101,7 @@ async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Se
 def criar_token(id_usuario, duracao_token = timedelta(minutes = ACCESS_TOKEN_EXPIRE_MINUTES)):
     data_expiracao = datetime.now(timezone.utc) + duracao_token  # define o tempo de expiração do token (tempo em minutos a partir do momento atual definido pelo fuso horário padrão (utc))
     dic_informacoes = {
-        "sub": id_usuario, # sub = subject (assunto) --> identifica o usuário
+        "sub": str(id_usuario), # sub = subject (assunto) --> identifica o usuário
         "exp": data_expiracao # exp = expiration (expiração) --> define o tempo de expiração do token
     }
     jwt_codificado = jwt.encode(dic_informacoes,kEY_CRYPT, ALGORITHM) # codifica o token com a chave de criptografia e o algoritmo definido
