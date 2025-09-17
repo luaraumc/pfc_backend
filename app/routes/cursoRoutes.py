@@ -3,7 +3,7 @@ from app.services.curso import criar_curso, listar_cursos, buscar_curso_por_id, 
 from app.services.cursoConhecimento import criar_curso_conhecimento, listar_curso_conhecimentos, remover_curso_conhecimento # serviços para manipular conhecimentos do curso
 from app.schemas import CursoBase, CursoOut, CursoConhecimentoOut # schemas para validação de dados
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
-from app.dependencies import pegar_sessao, verificar_token # cria sessões com o banco de dados e verifica o token
+from app.dependencies import pegar_sessao, verificar_token, requer_admin # cria sessões com o banco de dados, verifica o token e requer admin
 from app.models import Curso, Usuario, CursoConhecimento # modelo de tabela definido no arquivo models.py
 
 # Inicializa o router
@@ -26,7 +26,7 @@ async def get_curso(curso_id: int, session: Session = Depends(pegar_sessao)):
 @cursoRouter.post("/cadastro")
 async def cadastro(
     curso_schema: CursoBase, # passa como parametro os dados que o usuário tem que inserir ao acessar a rota
-    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
 ):
     curso = session.query(Curso).filter(Curso.nome == curso_schema.nome).first() # verifica se o curso já existe no banco de dados
@@ -40,7 +40,7 @@ async def cadastro(
 async def atualizar(
     curso_id: int, # ID do curso a ser atualizado
     curso_schema: CursoBase, # passa como parametro os dados que o usuário tem que inserir ao acessar a rota
-    usuario: dict = Depends(verificar_token), # verifica o token de acesso do usuário
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
 ):
     curso = atualizar_curso(session, curso_id, curso_schema) # chama a função de serviço para atualizar o curso
@@ -52,7 +52,7 @@ async def atualizar(
 @cursoRouter.delete("/deletar/{curso_id}")
 async def deletar(
     curso_id: int, # ID do curso a ser deletado
-    usuario: Usuario = Depends(verificar_token), # verifica o token de acesso do usuário
+    usuario: Usuario = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao) # pega a sessão do banco de dados
 ):
     curso = deletar_curso(session, curso_id) # chama a função de serviço para deletar o curso
@@ -75,7 +75,7 @@ async def listar_conhecimentos_curso_route(
 async def adicionar_conhecimento_curso_route(
     curso_id: int,
     conhecimento_id: int,
-    usuario: dict = Depends(verificar_token),
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao)
 ):
     from app.schemas import CursoConhecimentoBase
@@ -90,7 +90,7 @@ async def adicionar_conhecimento_curso_route(
 async def remover_conhecimento_curso_route(
     curso_id: int,
     conhecimento_id: int,
-    usuario: dict = Depends(verificar_token),
+    usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao)
 ):
     resultado = remover_curso_conhecimento(session, curso_id, conhecimento_id)
