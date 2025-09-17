@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
+from fastapi.security import OAuth2PasswordRequestForm # esquema de segurança para autenticação
 from app.services.usuario import criar_usuario # serviços relacionados ao usuário
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
 from app.models import Usuario, RecuperacaoSenha # modelo de tabela definido no arquivo models.py
@@ -42,7 +43,21 @@ async def login(login_schema: LoginSchema, session: Session = Depends(pegar_sess
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "Bearer"
-            } 
+            }
+    
+# Login de usuário para o fastapi docs
+@authRouter.post("/login-form")
+async def login_form(dados_formulario: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(pegar_sessao)):
+    usuario=autenticar_usuario(dados_formulario.username, dados_formulario.password, session) # autentica o usuário
+    if not usuario:
+        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos")
+    else:
+        access_token = criar_token(usuario.id) # cria o token de acesso
+        return {
+            "access_token": access_token,
+            "token_type": "Bearer"
+            }
+
 
 # Usar o refresh token para obter um novo access token - AUTENTICADA
 @authRouter.get("/refresh")
