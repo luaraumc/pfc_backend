@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
-from app.services.usuario import atualizar_usuario, buscar_usuario_por_id # serviços relacionados ao usuário
+from app.services.usuario import atualizar_usuario, buscar_usuario_por_id, deletar_usuario, atualizar_senha # serviços relacionados ao usuário
 from app.services.usuarioHabilidade import criar_usuario_habilidade, listar_habilidades_usuario, remover_usuario_habilidade # serviços para manipular habilidades do usuário
 from app.models import Habilidade, UsuarioHabilidade # modelo de tabela definido no arquivo models.py
 from sqlalchemy.orm import Session# cria sessões com o banco de dados
@@ -31,11 +31,11 @@ async def atualizar_usuario_route(
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     usuario_atualizado = atualizar_usuario(session, usuario_id, usuario_data)
-    return usuario_atualizado
+    return {"message": "Usuário atualizado com sucesso: " + usuario_atualizado.nome}
 
 # Atualizar senha do usuário - AUTENTICADA
 @usuarioRouter.put("/atualizar-senha/{usuario_id}")
-async def atualizar_senha(
+async def atualizar_senha_route(
     usuario_id: int,
     nova_senha: AtualizarSenhaSchema,
     usuario: Usuario = Depends(verificar_token),
@@ -45,12 +45,12 @@ async def atualizar_senha(
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     usuario_db.senha = bcrypt_context.hash(nova_senha.nova_senha)
-    atualizar_usuario(session, usuario_db)
-    return usuario_db
+    atualizar_senha(session, usuario_id, usuario_db.senha)
+    return {"message": "Senha atualizada com sucesso para o usuário: " + usuario_db.nome}
 
 # Deletar usuário - AUTENTICADA
-@usuarioRouter.delete("/deletar/{usuario_id}", response_model=UsuarioOut)
-async def deletar_usuario(
+@usuarioRouter.delete("/deletar/{usuario_id}")
+async def deletar_usuario_route(
     usuario_id: int,
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
@@ -58,8 +58,8 @@ async def deletar_usuario(
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    deletar_usuario(session, usuario_db)
-    return usuario_db
+    deletar_usuario(session, usuario_id)
+    return {"message": f"Usuário deletado com sucesso: {usuario_db.nome}"}
 
 # ======================= HABILIDADES DO USUÁRIO =======================
 
