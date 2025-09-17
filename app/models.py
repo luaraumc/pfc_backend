@@ -1,10 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint # tipos de dados e restrições
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint, Boolean, CheckConstraint # tipos de dados e restrições
 from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para timestamps automáticos
 from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
-from app.dependencies import setup_database # configuração da conexão com o banco de dados
+from app.dependencies import Base # configuração da conexão com o banco de dados
 
-# Inicializa a conexão com o banco de dados
-engine, SessionLocal, Base = setup_database()
 
 # ===================== TABELAS PRINCIPAIS =====================
 
@@ -31,12 +29,21 @@ class Usuario(Base):
 	nome = Column(String(100), nullable=False)
 	email = Column(String(150), unique=True, nullable=False)
 	senha = Column(Text, nullable=False)
-	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=False)
-	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=False)
+	admin = Column(Boolean, default=False, nullable=False)
+	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=True)
+	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=True)
 	criado_em = Column(DateTime, server_default=func.now(), nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 	carreira = relationship('Carreira', backref='usuarios')
 	curso = relationship('Curso', backref='usuarios')
+
+	__table_args__ = (
+        CheckConstraint(
+            "(admin = true) OR (carreira_id IS NOT NULL AND curso_id IS NOT NULL)",
+            name="chk_admin_carreira"
+        ),
+    )
+
 
 # Modelo da tabela "habilidade"
 class Habilidade(Base):

@@ -24,7 +24,6 @@ class CursoOut(CursoBase):
 class CarreiraBase(BaseModel):
     nome: str
     descricao: str | None = None
-    descricao: str
 
 class CarreiraOut(CarreiraBase):
     id: int
@@ -37,15 +36,13 @@ class UsuarioBase(BaseModel):
     nome: str
     email: str
     senha: str
+    admin: bool
     carreira_id: int
     curso_id: int
 
 class UsuarioOut(UsuarioBase):
     id: int
-    nome: str
-    email: str
-    carreira_id: int
-    curso_id: int
+
     criado_em: datetime
     atualizado_em: datetime
 

@@ -8,24 +8,21 @@ from app.config import kEY_CRYPT, ALGORITHM, oauth2_schema # importa configuraç
     - engine: objeto de conexão
     - SessionLocal: função para criar sessões
     - Base: classe base para os modelos ORM
+
 """
-
 # Configuração da conexão com o banco de dados
-def setup_database():
-    import os
-    from dotenv import load_dotenv
-    from sqlalchemy import create_engine # cria a conexão com o banco de dados
-    from sqlalchemy.orm import sessionmaker, declarative_base # cria sessões para interagir com o banco e define a classe base para os modelos
+import os
+from dotenv import load_dotenv
+from sqlalchemy import create_engine # cria a conexão com o banco de dados
+from sqlalchemy.orm import sessionmaker, declarative_base # cria sessões para interagir com o banco e define a classe base para os modelos
 
-    load_dotenv()
-    DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    engine = create_engine(DATABASE_URL)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base = declarative_base()
-    return engine, SessionLocal, Base
+load_dotenv()
+DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-# Inicializa a conexão com o banco de dados
-engine, SessionLocal, Base = setup_database()
+
 
 # Obter uma sessão do banco de dados
 def pegar_sessao():

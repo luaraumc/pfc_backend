@@ -1,8 +1,6 @@
 from app.models import ConhecimentoHabilidade # modelo de tabela definido no arquivo models.py
-from app.dependencies import setup_database # conexão do banco de dados
 from app.schemas import ConhecimentoHabilidadeBase, ConhecimentoHabilidadeOut # schema de entrada e saída
 
-engine, SessionLocal, Base = setup_database()
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
