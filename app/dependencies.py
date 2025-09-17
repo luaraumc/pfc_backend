@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session, sessionmaker # cria sessões para interagir 
 from fastapi import Depends, HTTPException # cria dependências e exceções HTTP
 from jose import jwt, JWTError # manipula JSON Web Tokens
 from app.config import kEY_CRYPT, ALGORITHM, oauth2_schema # importa configurações de segurança
+from typing import Any
 
 """
     Realiza toda a configuração da conexão com o banco de dados e retorna:
@@ -22,8 +23,6 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-
-
 # Obter uma sessão do banco de dados
 def pegar_sessao():
     try:
@@ -43,4 +42,13 @@ def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depe
     usuario = session.query(Usuario).filter(Usuario.id==id_usuario).first() # busca o usuário na sessão
     if not usuario:
         raise HTTPException(status_code=401, detail="Acesso inválido")
+    return usuario
+
+# Verifica se o usuário autenticado é um administrador
+def requer_admin(usuario: Any = Depends(verificar_token)):
+    is_admin = getattr(usuario, "admin", None) # tenta obter o atributo 'admin' do objeto usuario
+    if is_admin is None and isinstance(usuario, dict): # se o usuário for um dicionário, tenta obter a chave 'admin'
+        is_admin = usuario.get("admin")
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Acesso restrito")
     return usuario
