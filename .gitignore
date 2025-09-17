@@ -16,3 +16,4 @@ __pycache__/
 *.migrations/
 *.coverage
 *.pytest_cache/
+*.alembic.ini
