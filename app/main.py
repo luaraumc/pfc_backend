@@ -9,9 +9,13 @@ from app.routes.authRoutes import authRouter
 from app.routes.usuarioRoutes import usuarioRouter
 from app.routes.carreiraRoutes import carreiraRouter
 from app.routes.cursoRoutes import cursoRouter
+from app.routes.habilidadeRoutes import habilidadeRouter
+from app.routes.conhecimentoRoutes import conhecimentoRouter
 
 # incluindo as rotas na aplicação FastAPI instanciada
 app.include_router(authRouter)
 app.include_router(usuarioRouter)
 app.include_router(carreiraRouter)
 app.include_router(cursoRouter)
+app.include_router(habilidadeRouter)
+app.include_router(conhecimentoRouter)
