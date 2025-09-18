@@ -95,9 +95,13 @@ async def solicitar_codigo_recuperar(payload: SolicitarCodigoSchema, session: Se
 @authRouter.post("/recuperar-senha")  # mantido nome para compatibilidade de frontend
 async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Session = Depends(pegar_sessao)):
     # Busca último código válido para motivos de senha
+    usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
     rec = (
         session.query(CodigoAutenticacao)
-        .filter(CodigoAutenticacao.email == nova_senha.email, CodigoAutenticacao.motivo.in_(["recuperacao_senha"]))
+        .filter(CodigoAutenticacao.usuario_id == usuario.id, CodigoAutenticacao.motivo.in_(["recuperacao_senha"])) # filtra por motivo de recuperação de senha
         .order_by(CodigoAutenticacao.id.desc())
         .first()
     )
@@ -107,10 +111,6 @@ async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Se
         raise HTTPException(status_code=400, detail="Código expirado")
     if not bcrypt_context.verify(nova_senha.codigo, rec.codigo_recuperacao):
         raise HTTPException(status_code=400, detail="Código inválido")
-
-    usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
     usuario.senha = bcrypt_context.hash(nova_senha.nova_senha)
     session.delete(rec) # remove o código usado
@@ -161,7 +161,6 @@ def _gerar_codigo(session: Session, usuario: Usuario, motivo: str):
     codigo = str(randint(100000, 999999))
     rec = CodigoAutenticacao(
         usuario_id=usuario.id,
-        email=usuario.email,
         codigo_recuperacao=bcrypt_context.hash(codigo),
         codigo_expira_em=datetime.utcnow() + timedelta(minutes=10),
         motivo=motivo
