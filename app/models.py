@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint, Boolean, CheckConstraint # tipos de dados e restrições
 from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para timestamps automáticos
-from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
+from sqlalchemy.orm import relationship, backref # cria relacionamentos entre tabelas
 from app.dependencies import Base # configuração da conexão com o banco de dados
 
 # ===================== TABELAS PRINCIPAIS =====================
@@ -75,12 +75,16 @@ class Compatibilidade(Base):
 class CodigoAutenticacao(Base):
 	__tablename__ = "codigo_autenticacao"
 	id = Column(Integer, primary_key=True, index=True)
-	usuario_id = Column(Integer, ForeignKey("usuario.id"), nullable=False)
-	email = Column(String(150), ForeignKey("usuario.email"), nullable=False)
+	usuario_id = Column(Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False)
 	codigo_recuperacao = Column(String(255), nullable=False)
 	codigo_expira_em = Column(DateTime, nullable=False)
 	motivo = Column(String(50), nullable=False, server_default='recuperacao_senha')
-	usuario = relationship("Usuario", backref="codigos_autenticacao", foreign_keys=[usuario_id])
+	usuario = relationship(
+		"Usuario",
+		foreign_keys=[usuario_id], # especifica qual coluna é a FK usada no relacionamento
+		passive_deletes=True, # garante que ao excluir o usuário, os códigos relacionados sejam excluídos automaticamente
+		backref=backref("codigos_autenticacao", passive_deletes=True)
+	)
 
 # Modelo da tabela "log_exclusoes"
 class LogExclusao(Base):
