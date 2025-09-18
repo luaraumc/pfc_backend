@@ -81,13 +81,14 @@ class CompatibilidadeOut(CompatibilidadeBase):
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 # Schema de RecuperacaoSenha
-class RecuperacaoSenhaBase(BaseModel):
+class CodigoAutenticacaoBase(BaseModel):
     usuario_id: int
     email: str
     codigo_recuperacao: str
     codigo_expira_em: datetime
+    motivo: str
 
-class RecuperacaoSenhaOut(RecuperacaoSenhaBase):
+class CodigoAutenticacaoOut(CodigoAutenticacaoBase):
     id: int
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
@@ -158,18 +159,19 @@ class LoginSchema(BaseModel):
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
-class RecuperarSenhaSchema(BaseModel):
-    email: str
-    nova_senha: str
-
 class AtualizarUsuarioSchema(BaseModel):
     nome: str
     email: str
     carreira_id: int
     curso_id: int
 
-class AtualizarSenhaSchema(BaseModel):
-    nova_senha: str
+class SolicitarCodigoSchema(BaseModel):
+    email: str
+
+class ConfirmarCodigoSchema(BaseModel):
+    email: str
+    codigo: str
+    motivo: str
 
 class ConfirmarNovaSenhaSchema(BaseModel):
     email: str
