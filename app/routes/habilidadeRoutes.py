@@ -13,7 +13,7 @@ def listar(session: Session = Depends(pegar_sessao)):
 	return listar_habilidades(session)
 
 # Cadastrar habilidade - AUTENTICADA
-@habilidadeRouter.post("/cadastro", response_model=HabilidadeOut)
+@habilidadeRouter.post("/cadastro")
 def cadastrar(
 	habilidade_schema: HabilidadeBase,
 	usuario: dict = Depends(requer_admin),
@@ -23,10 +23,11 @@ def cadastrar(
 	existe = session.query(Habilidade).filter(Habilidade.nome.ilike(habilidade_schema.nome)).first()
 	if existe:
 		raise HTTPException(status_code=400, detail="Habilidade já cadastrada")
-	return criar_habilidade(session, habilidade_schema)
+	criada = criar_habilidade(session, habilidade_schema)
+	return {"message": f"Habilidade '{criada.nome}' cadastrada com sucesso"}
 
 # Deletar habilidade - AUTENTICADA
-@habilidadeRouter.delete("/deletar/{habilidade_id}", response_model=HabilidadeOut)
+@habilidadeRouter.delete("/deletar/{habilidade_id}")
 def deletar(
 	habilidade_id: int,
 	usuario: dict = Depends(requer_admin),
@@ -35,4 +36,4 @@ def deletar(
 	habilidade = deletar_habilidade(session, habilidade_id)
 	if not habilidade:
 		raise HTTPException(status_code=404, detail="Habilidade não encontrada")
-	return habilidade
+	return {"message": f"Habilidade '{habilidade.nome}' deletada com sucesso"}

@@ -13,7 +13,7 @@ def listar(session: Session = Depends(pegar_sessao)):
 	return listar_conhecimentos(session)
 
 # Cadastrar conhecimento - AUTENTICADA
-@conhecimentoRouter.post("/cadastro", response_model=ConhecimentoOut)
+@conhecimentoRouter.post("/cadastro")
 def cadastrar(
 	conhecimento_schema: ConhecimentoBase,
 	usuario: dict = Depends(requer_admin),
@@ -23,10 +23,11 @@ def cadastrar(
 	existe = session.query(Conhecimento).filter(Conhecimento.nome.ilike(conhecimento_schema.nome)).first()
 	if existe:
 		raise HTTPException(status_code=400, detail="Conhecimento já cadastrado")
-	return criar_conhecimento(session, conhecimento_schema)
+	criado = criar_conhecimento(session, conhecimento_schema)
+	return {"message": f"Conhecimento '{criado.nome}' cadastrado com sucesso"}
 
 # Deletar conhecimento - AUTENTICADA
-@conhecimentoRouter.delete("/deletar/{conhecimento_id}", response_model=ConhecimentoOut)
+@conhecimentoRouter.delete("/deletar/{conhecimento_id}")
 def deletar(
 	conhecimento_id: int,
 	usuario: dict = Depends(requer_admin),
@@ -35,4 +36,4 @@ def deletar(
 	conhecimento = deletar_conhecimento(session, conhecimento_id)
 	if not conhecimento:
 		raise HTTPException(status_code=404, detail="Conhecimento não encontrado")
-	return conhecimento
+	return {"message": f"Conhecimento '{conhecimento.nome}' deletado com sucesso"}
