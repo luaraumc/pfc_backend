@@ -3,7 +3,6 @@ from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para ti
 from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
 from app.dependencies import Base # configuração da conexão com o banco de dados
 
-
 # ===================== TABELAS PRINCIPAIS =====================
 
 # Modelo da tabela "curso"
@@ -37,13 +36,13 @@ class Usuario(Base):
 	carreira = relationship('Carreira', backref='usuarios')
 	curso = relationship('Curso', backref='usuarios')
 
+	# Garantia de que usuários não-admin tenham carreira e curso definidos
 	__table_args__ = (
-        CheckConstraint(
-            "(admin = true) OR (carreira_id IS NOT NULL AND curso_id IS NOT NULL)",
-            name="chk_admin_carreira"
+        CheckConstraint( # condição SQL para cada INSERT
+            "(admin = true) OR (carreira_id IS NOT NULL AND curso_id IS NOT NULL)", # usuários comuns sempre vinculados a uma carreira e um curso, administradores livres dessa exigência
+            name="chk_admin_carreira" # nome da condição
         ),
     )
-
 
 # Modelo da tabela "habilidade"
 class Habilidade(Base):
@@ -72,16 +71,16 @@ class Compatibilidade(Base):
 	carreira = relationship('Carreira', backref='compatibilidades')
 	curso = relationship('Curso', backref='compatibilidades')
 
-# Modelo da tabela "recuperacao_senha"
-class RecuperacaoSenha(Base):
-    __tablename__ = "recuperacao_senha"
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("usuario.id"), nullable=False)
-    email = Column(String(150), ForeignKey("usuario.email"), nullable=False)
-    codigo_recuperacao = Column(String(255), nullable=False)
-    codigo_expira_em = Column(DateTime, nullable=False)
-
-    usuario = relationship("Usuario", backref="recuperacoes_senha", foreign_keys=[usuario_id])
+# Modelo da tabela "codigo_autenticacao" (códigos multiuso: recuperação de senha, atualização de senha, exclusão de conta)
+class CodigoAutenticacao(Base):
+	__tablename__ = "codigo_autenticacao"
+	id = Column(Integer, primary_key=True, index=True)
+	usuario_id = Column(Integer, ForeignKey("usuario.id"), nullable=False)
+	email = Column(String(150), ForeignKey("usuario.email"), nullable=False)
+	codigo_recuperacao = Column(String(255), nullable=False)
+	codigo_expira_em = Column(DateTime, nullable=False)
+	motivo = Column(String(50), nullable=False, server_default='recuperacao_senha')
+	usuario = relationship("Usuario", backref="codigos_autenticacao", foreign_keys=[usuario_id])
 
 # Modelo da tabela "log_exclusoes"
 class LogExclusao(Base):
