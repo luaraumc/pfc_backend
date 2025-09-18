@@ -1,0 +1,38 @@
+from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
+from sqlalchemy.orm import Session # cria sessões com o banco de dados
+from app.schemas import ConhecimentoBase, ConhecimentoOut # schemas para validação de dados
+from app.services.conhecimento import criar_conhecimento, listar_conhecimentos, deletar_conhecimento # serviços relacionados a conhecimento
+from app.dependencies import pegar_sessao, requer_admin # pegar a sessão do banco de dados, verificar o token e requerer admin
+
+# Inicializa o router
+conhecimentoRouter = APIRouter(prefix="/conhecimento", tags=["conhecimento"])
+
+# Listar todos os conhecimentos
+@conhecimentoRouter.get("/", response_model=list[ConhecimentoOut])
+def listar(session: Session = Depends(pegar_sessao)):
+	return listar_conhecimentos(session)
+
+# Cadastrar conhecimento - AUTENTICADA
+@conhecimentoRouter.post("/cadastro", response_model=ConhecimentoOut)
+def cadastrar(
+	conhecimento_schema: ConhecimentoBase,
+	usuario: dict = Depends(requer_admin),
+	session: Session = Depends(pegar_sessao),
+):
+	from app.models import Conhecimento
+	existe = session.query(Conhecimento).filter(Conhecimento.nome.ilike(conhecimento_schema.nome)).first()
+	if existe:
+		raise HTTPException(status_code=400, detail="Conhecimento já cadastrado")
+	return criar_conhecimento(session, conhecimento_schema)
+
+# Deletar conhecimento - AUTENTICADA
+@conhecimentoRouter.delete("/deletar/{conhecimento_id}", response_model=ConhecimentoOut)
+def deletar(
+	conhecimento_id: int,
+	usuario: dict = Depends(requer_admin),
+	session: Session = Depends(pegar_sessao),
+):
+	conhecimento = deletar_conhecimento(session, conhecimento_id)
+	if not conhecimento:
+		raise HTTPException(status_code=404, detail="Conhecimento não encontrado")
+	return conhecimento
