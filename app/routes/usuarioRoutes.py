@@ -58,8 +58,11 @@ async def deletar_usuario_route(
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    email_para_hash = usuario_db.email # pega email antes de excluir para gerar hash
     deletar_usuario(session, usuario_id)
-    return {"message": f"Usuário deletado com sucesso: {usuario_db.nome}"}
+    registrar_exclusao_usuario(session, email_para_hash) # gera hash e registra na tabela de log
+    return {"message": f"Usuário deletado com sucesso e registrado em auditoria: {usuario_db.nome}"}
 
 # ======================= HABILIDADES DO USUÁRIO =======================
 
