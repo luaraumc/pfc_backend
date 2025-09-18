@@ -83,7 +83,6 @@ class CompatibilidadeOut(CompatibilidadeBase):
 # Schema de RecuperacaoSenha
 class CodigoAutenticacaoBase(BaseModel):
     usuario_id: int
-    email: str
     codigo_recuperacao: str
     codigo_expira_em: datetime
     motivo: str
