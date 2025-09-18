@@ -60,7 +60,7 @@ async def atualizar_senha_route(
     # Busca último código válido para motivos de senha
     rec = (
         session.query(CodigoAutenticacao)
-        .filter(CodigoAutenticacao.email == dados.email, CodigoAutenticacao.motivo.in_(["atualizar_senha"]))
+        .filter(CodigoAutenticacao.usuario_id == usuario_db.id, CodigoAutenticacao.motivo.in_(["atualizar_senha"])) # filtra por motivo de atualização de senha
         .order_by(CodigoAutenticacao.id.desc())
         .first()
     )
@@ -102,7 +102,7 @@ async def deletar_usuario_route(
 
     rec = (
         session.query(CodigoAutenticacao)
-        .filter(CodigoAutenticacao.email == dados.email, CodigoAutenticacao.motivo == "exclusao_conta")
+        .filter(CodigoAutenticacao.usuario_id == usuario_db.id, CodigoAutenticacao.motivo == "exclusao_conta") # filtra por motivo de exclusão de conta
         .order_by(CodigoAutenticacao.id.desc())
         .first()
     )
@@ -113,10 +113,13 @@ async def deletar_usuario_route(
     if not bcrypt_context.verify(dados.codigo, rec.codigo_recuperacao):
         raise HTTPException(status_code=400, detail="Código inválido")
 
+    # Remove todos os códigos do usuário antes de deletá-lo (evita erro por UPDATE de FK -> NULL)
+    session.query(CodigoAutenticacao).filter(CodigoAutenticacao.usuario_id == usuario_db.id).delete(synchronize_session=False)
+    session.flush()
+
     email_para_hash = usuario_db.email
     deletar_usuario(session, usuario_id)
     registrar_exclusao_usuario(session, email_para_hash)
-    session.delete(rec)
     session.commit()
     return {"message": f"Usuário deletado com sucesso e registrado em auditoria"}
 
