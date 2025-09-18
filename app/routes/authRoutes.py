@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException # cria dependências e exc
 from fastapi.security import OAuth2PasswordRequestForm # esquema de segurança para autenticação
 from app.services.usuario import criar_usuario # serviços relacionados ao usuário
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.models import Usuario, RecuperacaoSenha, Carreira, Curso
+from app.models import Usuario, CodigoAutenticacao, Carreira, Curso
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from app.config import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, kEY_CRYPT # configuração de criptografia e autenticação
-from app.schemas import UsuarioBase, LoginSchema, ConfirmarNovaSenhaSchema # schemas para validação de dados
+from app.schemas import UsuarioBase, LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema # schemas para validação de dados
 from jose import JWTError, jwt # trabalhar com JSON Web Token (JWT)
 import smtplib # enviar emails
 from email.mime.text import MIMEText # formatar o conteúdo do email
@@ -73,7 +73,6 @@ async def login_form(dados_formulario: OAuth2PasswordRequestForm = Depends(), se
             "token_type": "Bearer"
             }
 
-
 # Usar o refresh token para obter um novo access token - AUTENTICADA
 @authRouter.get("/refresh")
 async def usar_refresh_token(usuario: Usuario = Depends(verificar_token)): # verifica o token de acesso
@@ -83,46 +82,39 @@ async def usar_refresh_token(usuario: Usuario = Depends(verificar_token)): # ver
         "token_type": "Bearer"
         }
 
-# Recuperar senha 1/2 - envia email com código, cria registro na tabela de recuperação
-@authRouter.post("/recuperar-senha")
-async def recuperar_senha(email: str, session: Session = Depends(pegar_sessao)): # recebe o email do usuário e a sessão do banco de dados
-    usuario = session.query(Usuario).filter(Usuario.email == email).first() # verifica se o email existe no banco de dados
+# Solicitar código de verificação por email (motivo: recuperacao_senha)
+@authRouter.post("/solicitar-codigo/recuperar-senha")
+async def solicitar_codigo_recuperar(payload: SolicitarCodigoSchema, session: Session = Depends(pegar_sessao)):
+    usuario = session.query(Usuario).filter(Usuario.email == payload.email).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    codigo = str(randint(100000, 999999)) # gera um código de 6 dígitos
-    hash_codigo = bcrypt_context.hash(codigo) # criptografa o código
-    expira_em = datetime.utcnow() + timedelta(minutes=10) # define o tempo de expiração do código (10 minutos a partir do momento atual)
+    _gerar_codigo(session, usuario, "recuperacao_senha")
+    return {"message": "Código enviado para recuperação de senha"}
 
-    # cria o registro na tabela de recuperação de senha
-    rec = RecuperacaoSenha( 
-        usuario_id=usuario.id,
-        email=usuario.email,
-        codigo_recuperacao=hash_codigo,
-        codigo_expira_em=expira_em
+# Confirmar código + recuperar senha
+@authRouter.post("/recuperar-senha")  # mantido nome para compatibilidade de frontend
+async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Session = Depends(pegar_sessao)):
+    # Busca último código válido para motivos de senha
+    rec = (
+        session.query(CodigoAutenticacao)
+        .filter(CodigoAutenticacao.email == nova_senha.email, CodigoAutenticacao.motivo.in_(["recuperacao_senha"]))
+        .order_by(CodigoAutenticacao.id.desc())
+        .first()
     )
-
-    session.add(rec) # adiciona o registro na sessão
-    session.commit() # salva o registro no banco de dados
-    enviar_email(usuario.email, codigo) # envia o email com o código
-    return {"message": "Código enviado para o e-mail"}
-
-# Recuperar senha 2/2 - confirma o código e atualiza a senha
-@authRouter.post("/recuperar-senha/confirmar")
-async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Session = Depends(pegar_sessao)): # recebe o email, o código e a nova senha do usuário e a sessão do banco de dados
-    rec = session.query(RecuperacaoSenha).filter(RecuperacaoSenha.email == nova_senha.email).order_by(RecuperacaoSenha.id.desc()).first() # busca o registro mais recente na tabela de recuperação de senha para o email fornecido
     if not rec:
-        raise HTTPException(status_code=404, detail="Nenhum pedido de recuperação encontrado para este email") # se não encontrar nenhum registro, retorna um erro
+        raise HTTPException(status_code=404, detail="Nenhum código de verificação gerado para este email")
     if rec.codigo_expira_em < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="Código expirado") # se o código expirou, retorna um erro
+        raise HTTPException(status_code=400, detail="Código expirado")
     if not bcrypt_context.verify(nova_senha.codigo, rec.codigo_recuperacao):
-        raise HTTPException(status_code=400, detail="Código inválido") # se o código não for válido, retorna um erro
+        raise HTTPException(status_code=400, detail="Código inválido")
 
-    usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first() # busca o usuário pelo email
+    usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first()
     if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado") 
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
-    usuario.senha = bcrypt_context.hash(nova_senha.nova_senha) # atualiza a senha do usuário
-    session.commit() # salva a nova senha no banco de dados
+    usuario.senha = bcrypt_context.hash(nova_senha.nova_senha)
+    session.delete(rec) # remove o código usado
+    session.commit()
     return {"detail": "Senha atualizada com sucesso"}
 
 # ======================== FUNÇÕES AUXILIARES =======================
@@ -144,15 +136,15 @@ def autenticar_usuario(email, senha, session):
         return False
     elif not bcrypt_context.verify(senha, usuario.senha): # compara a senha inserida com a senha criptografada no banco
         return False
-    return usuario 
+    return usuario
 
-# Para recuperar senha
+# Para enviar o email com o código
 def enviar_email(destinatario, codigo):
     # configurações do email
     remetente = os.getenv("EMAIL_REMETENTE")
     senha = os.getenv("EMAIL_SENHA")
-    assunto = "Código de recuperação de senha"
-    corpo = f"Seu código de recuperação é: {codigo}"
+    assunto = "Código"
+    corpo = f"Seu código é: {codigo}"
 
     # formata o email
     msg = MIMEText(corpo)
@@ -163,3 +155,17 @@ def enviar_email(destinatario, codigo):
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp: # conecta ao servidor do Gmail
         smtp.login(remetente, senha) # faz login com o email e a senha do remetente
         smtp.sendmail(remetente, destinatario, msg.as_string()) # envia o email
+
+# Gera e envia o código de verificação por email e envia o email
+def _gerar_codigo(session: Session, usuario: Usuario, motivo: str):
+    codigo = str(randint(100000, 999999))
+    rec = CodigoAutenticacao(
+        usuario_id=usuario.id,
+        email=usuario.email,
+        codigo_recuperacao=bcrypt_context.hash(codigo),
+        codigo_expira_em=datetime.utcnow() + timedelta(minutes=10),
+        motivo=motivo
+    )
+    session.add(rec)
+    session.commit()
+    enviar_email(usuario.email, codigo)
