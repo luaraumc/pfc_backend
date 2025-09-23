@@ -95,7 +95,18 @@ class LogExclusao(Base):
 	data_hora_exclusao = Column(DateTime, nullable=False, server_default=func.now())
 	responsavel = Column(String(50), nullable=False, server_default='usuario')
 	motivo = Column(String(100), nullable=False, server_default='pedido do titular')
-	
+
+# Modelo da tabela "vaga"
+class Vaga(Base):
+    __tablename__ = 'vaga'
+    id = Column(Integer, primary_key=True, index=True)
+    titulo = Column(String(200), nullable=False, unique=True)
+    descricao = Column(Text, nullable=False)
+    criado_em = Column(DateTime, server_default=func.now(), nullable=False)
+    atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+    carreira_id = Column(Integer, ForeignKey("carreira.id", ondelete="SET NULL"), nullable=True)
+    carreira = relationship("Carreira", backref="vagas")
+
 # backref: cria um relacionamento bidirecional entre os modelos
 
 # ===================== TABELAS RELACIONAIS =====================
@@ -138,6 +149,16 @@ class ConhecimentoHabilidade(Base):
     habilidade_id = Column(Integer, ForeignKey('habilidade.id', ondelete='CASCADE'), nullable=False)
     __table_args__ = (
         UniqueConstraint('conhecimento_id', 'habilidade_id', name='uq_conhecimento_habilidade'),
+    )
+
+# Modelo da tabela "vaga_habilidade"
+class VagaHabilidade(Base):
+    __tablename__ = 'vaga_habilidade'
+    id = Column(Integer, primary_key=True, index=True)
+    vaga_id = Column(Integer, ForeignKey('vaga.id', ondelete='CASCADE'), nullable=False)
+    habilidade_id = Column(Integer, ForeignKey('habilidade.id', ondelete='CASCADE'), nullable=False)
+    __table_args__ = (
+        UniqueConstraint('vaga_id', 'habilidade_id', name='uq_vaga_habilidade'),
     )
 
 # ondelete='CASCADE': garante que ao excluir o registro principal os relacionados também sejam excluídos
