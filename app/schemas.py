@@ -105,6 +105,18 @@ class LogExclusaoOut(LogExclusaoBase):
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
+# Schema de Vaga
+class VagaBase(BaseModel):
+    titulo: str
+    descricao: str
+    carreira_id: int | None = None
+
+class VagaOut(VagaBase):
+    id: int
+    carreira_nome: str | None = None
+    
+    model_config = {'from_attributes': True}
+
 # ===================== TABELAS RELACIONAIS =====================
 
 # Schema de CursoConhecimento
@@ -146,6 +158,15 @@ class ConhecimentoHabilidadeBase(BaseModel):
     habilidade_id: int
 
 class ConhecimentoHabilidadeOut(ConhecimentoHabilidadeBase):
+    id: int
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
+class VagaHabilidadeBase(BaseModel):
+    vaga_id: int
+    habilidade_id: int
+
+class VagaHabilidadeOut(VagaHabilidadeBase):
     id: int
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
