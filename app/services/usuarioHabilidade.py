@@ -1,8 +1,6 @@
 from app.models import UsuarioHabilidade # modelo de tabela definido no arquivo models.py
 from app.schemas import UsuarioHabilidadeBase, UsuarioHabilidadeOut # schema de entrada e saída
 
-
-
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
 model_validate: converte um objeto em um schema Pydantic para retornar dados das funções CRUD no formato esperado pela API
