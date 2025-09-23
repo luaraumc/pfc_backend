@@ -2,20 +2,18 @@ from sqlalchemy.orm import Session, sessionmaker # cria sessões para interagir 
 from fastapi import Depends, HTTPException # cria dependências e exceções HTTP
 from jose import jwt, JWTError # manipula JSON Web Tokens
 from app.config import kEY_CRYPT, ALGORITHM, oauth2_schema # importa configurações de segurança
-from typing import Any
+from sqlalchemy import create_engine # cria a conexão com o banco de dados
+from sqlalchemy.orm import sessionmaker, declarative_base # cria sessões para interagir com o banco e define a classe base para os modelos
+from typing import Any # permite usar tipos genéricos
+from dotenv import load_dotenv # carregar as variáveis de ambiente
+import os # interagir com o sistema operacional
 
 """
     Realiza toda a configuração da conexão com o banco de dados e retorna:
     - engine: objeto de conexão
     - SessionLocal: função para criar sessões
     - Base: classe base para os modelos ORM
-
 """
-# Configuração da conexão com o banco de dados
-import os
-from dotenv import load_dotenv
-from sqlalchemy import create_engine # cria a conexão com o banco de dados
-from sqlalchemy.orm import sessionmaker, declarative_base # cria sessões para interagir com o banco e define a classe base para os modelos
 
 load_dotenv()
 DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
