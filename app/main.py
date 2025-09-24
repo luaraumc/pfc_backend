@@ -1,8 +1,22 @@
 # executar no terminal para rodar: python -m uvicorn app.main:app --reload
 
 from fastapi import FastAPI # classe FastAPI
+from fastapi.middleware.cors import CORSMiddleware # middleware para permitir requisições de diferentes origens
 
 app = FastAPI() # instancia da classe FastAPI
+
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # importando as rotas
 from app.routes.authRoutes import authRouter
