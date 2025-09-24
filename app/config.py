@@ -10,4 +10,4 @@ ALGORITHM = os.getenv('ALGORITHM') # algoritmo de criptografia
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')) # tempo de expiração do token de acesso (em minutos)
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto") # define o esquema de criptografia --> (deprecated=auto) caso o esquema (bcrypt) fique obsoleto, ele irá atualizar automaticamente
-oauth2_schema = OAuth2PasswordBearer(tokenUrl="auth/login-form") # define a url para o login (rota onde o usuário irá enviar suas credenciais para obter o token)
+oauth2_schema = OAuth2PasswordBearer(tokenUrl="auth/login") # define a url para o login (rota onde o usuário irá enviar suas credenciais para obter o token)
