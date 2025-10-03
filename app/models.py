@@ -36,14 +36,6 @@ class Usuario(Base):
 	carreira = relationship('Carreira', backref='usuarios')
 	curso = relationship('Curso', backref='usuarios')
 
-	# Garantia de que usuários não-admin tenham carreira e curso definidos
-	__table_args__ = (
-        CheckConstraint( # condição SQL para cada INSERT
-            "(admin = true) OR (carreira_id IS NOT NULL AND curso_id IS NOT NULL)", # usuários comuns sempre vinculados a uma carreira e um curso, administradores livres dessa exigência
-            name="chk_admin_carreira" # nome da condição
-        ),
-    )
-
 # Modelo da tabela "habilidade"
 class Habilidade(Base):
 	__tablename__ = 'habilidade'
@@ -100,7 +92,7 @@ class LogExclusao(Base):
 class Vaga(Base):
     __tablename__ = 'vaga'
     id = Column(Integer, primary_key=True, index=True)
-    titulo = Column(String(200), nullable=False, unique=True)
+    titulo = Column(String(200), nullable=False)  # removido unique=True
     descricao = Column(Text, nullable=False)
     criado_em = Column(DateTime, server_default=func.now(), nullable=False)
     atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
