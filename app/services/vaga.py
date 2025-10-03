@@ -1,32 +1,99 @@
-from app.models import Vaga # modelo de tabela definido no arquivo models.py
-from app.schemas import VagaBase, VagaOut # schema de entrada e saída
+from app.models import Vaga, Habilidade, VagaHabilidade, CarreiraHabilidade
+from app.schemas import VagaBase, VagaOut
 from sqlalchemy.orm import Session
-
-"""
-model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
-model_validate: converte um objeto em um schema Pydantic para retornar dados das funções CRUD no formato esperado pela API
-exclude_unset: gera um dicionário para atualizar apenas os campos que foram informados, sem sobrescrever os demais
-"""
+from app.services.extracao import padronizar_descricao, extrair_habilidades_descricao, normalizar_habilidade, deduplicar
 
 # ======================= CRUD =======================
 
-# CREATE / POST - Cria uma nova vaga
-def criar_vaga(session, vaga_data: VagaBase) -> VagaOut:
+def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
+    """
+    Cria uma nova vaga:
+    - Padroniza descrição
+    - Extrai habilidades
+    - Cria habilidades novas
+    - Associa habilidades à vaga e à carreira
+    Retorna info detalhada para frontend
+    """
+
+    # Padroniza a descrição
+    vaga_data.descricao = padronizar_descricao(vaga_data.descricao)
+
+    # Cria a vaga
     nova_vaga = Vaga(**vaga_data.model_dump())
     session.add(nova_vaga)
     session.commit()
     session.refresh(nova_vaga)
-    return VagaOut.model_validate(nova_vaga)
+
+    # Extrai habilidades
+    habilidades_extraidas = extrair_habilidades_descricao(nova_vaga.descricao)
+
+    vistos = set()
+    finais = []
+    for h in habilidades_extraidas:
+        h_norm = normalizar_habilidade(h)
+        chave = deduplicar(h_norm)
+        if chave not in vistos:
+            vistos.add(chave)
+            finais.append(h_norm)
+
+    habilidades_criadas = []
+    habilidades_ja_existiam = []
+
+    # Processa habilidades no banco
+    for nome_padronizado in finais:
+        # Verifica se já existe
+        habilidade = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_padronizado)).first()
+        if not habilidade:
+            habilidade = Habilidade(nome=nome_padronizado)
+            session.add(habilidade)
+            session.flush()
+            habilidades_criadas.append(nome_padronizado)
+        else:
+            habilidades_ja_existiam.append(nome_padronizado)
+
+        # Associa à vaga
+        existe_rel_vaga = session.query(VagaHabilidade).filter_by(
+            vaga_id=nova_vaga.id, habilidade_id=habilidade.id
+        ).first()
+        if not existe_rel_vaga:
+            session.add(VagaHabilidade(vaga_id=nova_vaga.id, habilidade_id=habilidade.id))
+
+        # Associa à carreira, se houver
+        if nova_vaga.carreira_id:
+            existe_rel_carreira = session.query(CarreiraHabilidade).filter_by(
+                carreira_id=nova_vaga.carreira_id, habilidade_id=habilidade.id
+            ).first()
+            if not existe_rel_carreira:
+                session.add(CarreiraHabilidade(carreira_id=nova_vaga.carreira_id, habilidade_id=habilidade.id))
+
+    session.commit()
+    session.refresh(nova_vaga)
+
+    return {
+        "id": nova_vaga.id,
+        "titulo": nova_vaga.titulo,
+        "descricao": nova_vaga.descricao,
+        "carreira_id": nova_vaga.carreira_id,
+        "carreira_nome": nova_vaga.carreira.nome if nova_vaga.carreira else None,
+        "habilidades_extraidas": habilidades_extraidas,
+        "habilidades_criadas": habilidades_criadas,
+        "habilidades_ja_existiam": habilidades_ja_existiam
+    }
 
 # READ / GET - Lista todas as vagas
-def listar_vagas(session) -> list[VagaOut]:
+def listar_vagas(session: Session) -> list[VagaOut]:
     vagas = session.query(Vaga).order_by(Vaga.criado_em.desc()).all()
     return [VagaOut.model_validate(v) for v in vagas]
 
+# Sugere carreira pelo título
 MAPEAMENTO_CARREIRA_PALAVRAS = {
     "dados": "Analista de Dados",
     "cientista": "Cientista de Dados",
     "backend": "Desenvolvedor Backend",
+    "back":"Desenvolvedor Backend",
+    "back-end": "Desenvolvedor Backend",
+    "front": "Desenvolvedor Frontend",
+    "front-end": "Desenvolvedor Frontend",
     "frontend": "Desenvolvedor Frontend",
     "full": "Desenvolvedor Fullstack",
     "segurança": "Analista de Segurança da Informação",
@@ -34,13 +101,12 @@ MAPEAMENTO_CARREIRA_PALAVRAS = {
     "infra": "Analista de Infraestrutura",
 }
 
-# Sugere uma carreira com base no título da vaga
-def sugerir_carreira_por_titulo(titulo: str, sessao: Session):
+def sugerir_carreira_por_titulo(titulo: str, session: Session):
     t = titulo.lower()
     from app.models import Carreira
     for chave, nome in MAPEAMENTO_CARREIRA_PALAVRAS.items():
         if chave in t:
-            carreira = sessao.query(Carreira).filter(Carreira.nome == nome).first()
+            carreira = session.query(Carreira).filter(Carreira.nome == nome).first()
             if carreira:
                 return carreira.id
     return None

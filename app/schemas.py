@@ -117,6 +117,16 @@ class VagaOut(VagaBase):
     
     model_config = {'from_attributes': True}
 
+
+# Schema de Vaga Completa
+class VagaCompletaOut(VagaOut):
+    habilidades_extraidas: list[str] = []
+    habilidades_criadas: list[str] = []
+    habilidades_ja_existiam: list[str] = []
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
+
 # ===================== TABELAS RELACIONAIS =====================
 
 # Schema de CursoConhecimento
@@ -162,6 +172,8 @@ class ConhecimentoHabilidadeOut(ConhecimentoHabilidadeBase):
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
+#Schema de VagaHabilidade
+
 class VagaHabilidadeBase(BaseModel):
     vaga_id: int
     habilidade_id: int
@@ -170,6 +182,7 @@ class VagaHabilidadeOut(VagaHabilidadeBase):
     id: int
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
 
 # ===================== AUXILIARES =====================
 

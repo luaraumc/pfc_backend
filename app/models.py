@@ -100,7 +100,7 @@ class LogExclusao(Base):
 class Vaga(Base):
     __tablename__ = 'vaga'
     id = Column(Integer, primary_key=True, index=True)
-    titulo = Column(String(200), nullable=False, unique=True)
+    titulo = Column(String(200), nullable=False)  # removido unique=True
     descricao = Column(Text, nullable=False)
     criado_em = Column(DateTime, server_default=func.now(), nullable=False)
     atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)

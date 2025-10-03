@@ -1,14 +1,12 @@
-from dotenv import load_dotenv  # carregar variáveis de ambiente
-import os  # interagir com o sistema operacional
-from typing import List  # tipos para listas
-from openai import OpenAI  # API OpenAI
-from sqlalchemy.orm import Session  # sessões com o banco de dados
-from app.models import Vaga, Habilidade, VagaHabilidade  # modelo de tabela definido no arquivo models.py
-import json, re, unicodedata # manipulação de JSON, expressões regulares, normalização de strings
+from dotenv import load_dotenv
+import os
+from typing import List
+from openai import OpenAI
+import json, re, unicodedata
+from app.models import Habilidade, CarreiraHabilidade
 
 load_dotenv()
 
-# Prompt base enviado ao modelo de linguagem
 PROMPT_BASE = """
 Extraia somente uma lista de habilidades (competências técnicas ou soft skills claras) do texto de descrição de vaga abaixo.
 Responda apenas JSON válido no formato: {"habilidades": ["habilidade1", "habilidade2", ...]}
@@ -18,19 +16,6 @@ Responda apenas JSON válido no formato: {"habilidades": ["habilidade1", "habili
 TEXTO:
 """
 
-# Normaliza uma string de habilidade
-def normalizar(habilidade: str) -> str:
-    habilidade = habilidade.strip() # remove espaços em branco no início e fim
-    habilidade = re.sub(r'\s+', ' ', habilidade) # re.sub encontra ocorrências de um determinado padrão numa string e substitui por uma nova string (substitui múltiplos espaços por um)
-    return habilidade[:60] # limita a 60 caracteres
-
-# Gera chave sem acento e minúscula para deduplicação
-def deduplicar(habilidade: str) -> str:
-    nfkd = unicodedata.normalize('NFKD', habilidade) # unicodedata.normalize normaliza a string para decompor caracteres acentuados / NFKD: Normalização de Compatibilidade de Decomposição
-    sem_acento = ''.join(c for c in nfkd if not unicodedata.combining(c)) # unicodedata.combining verifica se o caractere é um caractere de combinação (tem acentos) e remove esses caracteres
-    return sem_acento.lower() # converte para minúsculas
-
-# Mapa de padrões (regex)
 PADROES = {
     # Tecnologias / linguagens
     r"^python\d*$": "Python",
@@ -76,151 +61,161 @@ PADROES = {
     r"^pensamento cr[ií]tico$": "Pensamento crítico",
 }
 
-PADROES_COMPILADOS = [(re.compile(p, re.IGNORECASE), v) for p, v in PADROES.items()] # re.compile compila o padrão regex para uso repetido / re.IGNORECASE torna a busca case-insensitive
+PADROES_COMPILADOS = [(re.compile(p, re.IGNORECASE), v) for p, v in PADROES.items()]
 
-# Aplica regras de limpeza e mapeamento para obter a forma padrão da habilidade
-def padronizar(habilidade: str) -> str:
-    base = normalizar(habilidade) # remove espaços extras e limita tamanho
-    minuscula = base.lower() # converte para minúsculas
-    # 1. Remover versões acopladas sem espaço (ex: python311, node18, java17)
-    minuscula = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala)(\d{1,3}(?:\.\d+)*)\b', r'\1', minuscula)
-    # 2. Remover versões após espaço ou hífen (ex: python 3.11, java 17, node 18, go 1.22)
-    minuscula = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala)[ \-]+\d+(?:\.\d+){0,2}\b', r'\1', minuscula)
-    # 3. Remover versões após linguagens com sinais (c++ 20, c# 12)
-    minuscula = re.sub(r'\b(c\+\+|c#)[ \-]*\d{1,2}\b', r'\1', minuscula)
-    # 4. Normalizar ".net 8" / "dotnet 8" => dotnet / .net
-    minuscula = re.sub(r'\b(dotnet|\.net)[ \-]*\d+(?:\.\d+){0,2}\b', r'dotnet', minuscula)
-    # 5. Limpar pontuação periférica comum
-    minuscula = minuscula.strip(' .;,-')
-    # 6. Aplicar mapeamento
+
+def normalizar_habilidade(habilidade: str) -> str:
+    habilidade = habilidade.strip()
+    habilidade = re.sub(r'\s+', ' ', habilidade)[:60]
+    nfkd = unicodedata.normalize('NFKD', habilidade)
+    habilidade = ''.join(c for c in nfkd if not unicodedata.combining(c)).lower()
+    habilidade = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala)(\d{1,3}(?:\.\d+)*)\b', r'\1', habilidade)
+    habilidade = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala)[ \-]+\d+(?:\.\d+){0,2}\b', r'\1', habilidade)
+    habilidade = re.sub(r'\b(c\+\+|c#)[ \-]*\d{1,2}\b', r'\1', habilidade)
+    habilidade = re.sub(r'\b(dotnet|\.net)[ \-]*\d+(?:\.\d+){0,2}\b', r'dotnet', habilidade)
+    habilidade = habilidade.strip(' .;,-')
+
     for regex, valor in PADROES_COMPILADOS:
-        if regex.match(minuscula): # .match verifica se a string corresponde ao padrão regex
+        if regex.fullmatch(habilidade):
             return valor
-    # 7. Capitalização simples se for curta e não for sigla já em maiúsculas
-    if len(base.split()) <= 3 and not re.search(r'[A-Z]{2,}', base): # .split() divide a string em uma lista de palavras / re.search procura por padrão regex na string
-        base = ' '.join(p.capitalize() for p in base.split()) # join() junta a lista de palavras em uma string única separada por espaço / .capitalize() converte a primeira letra em maiúscula e o resto em minúscula
-    return base # retorna a forma padronizada
 
-# Extrai habilidades de um texto bruto de descrição de vaga
-def extrair_habilidades_texto(texto: str) -> List[str]:
-    cliente = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) # instancia cliente OpenAI com chave da variável de ambiente
-    prompt = PROMPT_BASE + texto # concatena prompt base com o texto da vaga
+    if len(habilidade.split()) <= 3 and not re.search(r'[A-Z]{2,}', habilidade):
+        habilidade = ' '.join(p.capitalize() for p in habilidade.split())
+
+    return habilidade
+
+
+def padronizar_descricao(descricao: str) -> str:
+    descricao = unicodedata.normalize('NFD', descricao)
+    descricao = descricao.encode('ascii', 'ignore').decode('utf-8')
+    descricao = descricao.lower()
+    descricao = re.sub(r'[^a-z0-9\s]', '', descricao)
+    descricao = re.sub(r'\s+', ' ', descricao).strip()
+    return descricao
+
+
+def deduplicar(hab: str) -> str:
+    hab = hab.strip().lower()
+    hab = unicodedata.normalize('NFD', hab)
+    hab = ''.join(c for c in hab if not unicodedata.combining(c))
+    hab = re.sub(r'[^a-z0-9]', '', hab)
+    return hab
+
+
+def extrair_habilidades_descricao(descricao: str) -> List[str]:
+    cliente = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    prompt = PROMPT_BASE + descricao
     try:
-        resposta = cliente.responses.create( # responses.create envia o prompt ao modelo e obtém a resposta
-            model="gpt-4.1", # modelo de linguagem
-            input=prompt, # prompt de entrada
-            temperature=0.15, # controle de aleatoriedade (0 = respostas mais previsíveis, 1 = mais variadas)
-            max_output_tokens=500 # limite de tokens na resposta
+        resposta = cliente.responses.create(
+            model="gpt-4.1",
+            input=prompt,
+            temperature=0.15,
+            max_output_tokens=500
         )
 
-        texto_completo = "" # armazenar o texto completo da resposta
-        if hasattr(resposta, "output_text") and resposta.output_text: # hasattr verifica se o objeto tem o atributo / output_text contém o texto gerado
-            texto_completo = resposta.output_text.strip() # monta o texto completo a partir do output_text removendo espaços em branco no início e fim
+        texto_completo = ""
+        if hasattr(resposta, "output_text") and resposta.output_text:
+            texto_completo = resposta.output_text.strip()
         else:
-            blocos_puros = [] # lista para armazenar blocos de texto puros
-            blocos = getattr(resposta, "output", []) or [] # getattr obtém o atributo 'output' do objeto resposta ou uma lista vazia se não existir
+            blocos_puros = []
+            blocos = getattr(resposta, "output", []) or []
             for bloco in blocos:
-                if getattr(bloco, "type", None) == "output_text": # verifica se o bloco é do tipo 'output_text'
-                    blocos_puros.append(getattr(bloco, "text", "").strip()) # adiciona o texto do bloco à lista removendo espaços em branco no início e fim
-            texto_completo = "\n".join(t for t in blocos_puros if t).strip() # junta os blocos de texto puros em uma única string
+                if getattr(bloco, "type", None) == "output_text":
+                    blocos_puros.append(getattr(bloco, "text", "").strip())
+            texto_completo = "\n".join(t for t in blocos_puros if t).strip()
 
-        habilidades_extraidas: List[str] = [] # lista para armazenar habilidades extraídas
+        habilidades_extraidas: List[str] = []
 
-        # tentar decodificar JSON de um segmento de texto
         def tentar_json(segmento: str):
-            nonlocal habilidades_extraidas # permite modificar a variável do escopo externo
+            nonlocal habilidades_extraidas
             try:
-                data = json.loads(segmento) # json.loads tenta decodificar a string JSON
-                if isinstance(data, dict) and isinstance(data.get("habilidades"), list): # verifica se o JSON é um dicionário com uma lista de habilidades
+                data = json.loads(segmento)
+                if isinstance(data, dict) and isinstance(data.get("habilidades"), list):
                     habilidades_extraidas = [
-                        padronizar(h) for h in data["habilidades"] # aplica padronização a cada habilidade
+                        normalizar_habilidade(h) for h in data["habilidades"]
                     ]
             except json.JSONDecodeError:
                 pass
 
-        # 1. Tenta JSON direto
         if texto_completo:
             tentar_json(texto_completo)
 
-        # 2. Se falhou, tenta regex para isolar bloco JSON
         if not habilidades_extraidas:
-            achado = re.search(r'\{.*"habilidades"\s*:\s*\[.*?\]\s*\}', texto_completo, re.DOTALL) # re.search procura por padrão regex na string / re.DOTALL faz o '.' corresponder a qualquer caractere, incluindo quebras de linha
+            achado = re.search(r'\{.*"habilidades"\s*:\s*\[.*?\]\s*\}', texto_completo, re.DOTALL)
             if achado:
-                tentar_json(achado.group(0)) # tenta decodificar o bloco JSON encontrado
+                tentar_json(achado.group(0))
 
-        # Deduplicação
-        finais: List[str] = [] # lista para habilidades finais
-        vistos = set() # conjunto para rastrear habilidades já vistas
+        finais: List[str] = []
+        vistos = set()
         for hab in habilidades_extraidas:
-            chave = deduplicar(hab) # gera chave para deduplicação
+            chave = deduplicar(hab)
             if chave not in vistos:
-                vistos.add(chave) # marca como vista
-                finais.append(hab) # adiciona à lista final
+                vistos.add(chave)
+                finais.append(hab)
 
         return finais
     except Exception as exc:
         return []
 
-# Extrai habilidades da vaga pelo id criando registros em 'habilidade'
-def extrair_habilidades_vaga(sessao: Session, vaga_id: int, criar_habilidades: bool = True, forcar_extracao: bool = False) -> dict:
-    vaga = sessao.query(Vaga).filter(Vaga.id == vaga_id).first() # busca a vaga pelo id
-    if not vaga:
-        return {"erro": "Vaga não encontrada"}
 
-    # Se não for para forçar, verificar cache
-    if not forcar_extracao:
-        habilidades_cache = (
-            sessao.query(Habilidade)
-            .join(VagaHabilidade, VagaHabilidade.habilidade_id == Habilidade.id)
-            .filter(VagaHabilidade.vaga_id == vaga_id)
-            .all()
-        )
-        if habilidades_cache:
-            return {
-                "vaga_id": vaga.id,
-                "titulo": vaga.titulo,
-                "habilidades_extraidas": [h.nome for h in habilidades_cache],
-                "habilidades_criadas": [],
-                "habilidades_ja_existiam": [h.nome for h in habilidades_cache],
-                "fonte": "cache"
-            }
+def processar_vaga(vaga_dados: dict, sessao, criar_habilidades=True):
+    """
+    Processa a criação de uma vaga:
+    - Padroniza descrição
+    - Extrai habilidades via IA
+    - Aplica mapa de padrões
+    - Salva apenas novas habilidades no banco
+    - Associa habilidades à carreira/vaga
+    """
 
-    habilidades = extrair_habilidades_texto(vaga.descricao) # extrai habilidades do texto da descrição da vaga
+    titulo = vaga_dados["titulo"]
+    descricao = vaga_dados["descricao"]
+    carreira_id = vaga_dados["carreira_id"]
 
-    criadas: List[str] = [] # lista para habilidades criadas
-    existentes: List[str] = [] # lista para habilidades que já existiam
-    ids_relacionar: list[int] = []
-    if criar_habilidades and habilidades:
-        for nome in habilidades:
-            existente = sessao.query(Habilidade).filter(Habilidade.nome.ilike(nome)).first() # ilike faz busca case-insensitive
-            if existente:
-                existentes.append(existente.nome) # adiciona o nome da habilidade existente à lista
-                ids_relacionar.append(existente.id)
-            else:
-                nova = Habilidade(nome=nome) # cria nova habilidade
-                sessao.add(nova) # adiciona à sessão
-                sessao.flush()
-                criadas.append(nome) # adiciona o nome da nova habilidade à lista
-                ids_relacionar.append(nova.id)
-        sessao.commit() # confirma as mudanças no banco de dados
+    # 1. Padroniza descrição
+    descricao_padronizada = padronizar_descricao(descricao)
 
-    # Criar associações vaga_habilidade (evita duplicar com unique constraint)
-    for hid in ids_relacionar:
+    # 2. Extrai habilidades
+    habilidades_extraidas = extrair_habilidades_descricao(descricao_padronizada)
+    habilidades_normalizadas = [normalizar_habilidade(h) for h in habilidades_extraidas]
+
+    # 3. Carregar todas as habilidades existentes em memória
+    habilidades_existentes_db = {h.nome.lower(): h for h in sessao.query(Habilidade).all()}
+
+    # 4. Criar apenas habilidades novas
+    novas_habilidades = []
+    ids_habilidades_assoc = []  # IDs de todas as habilidades que serão associadas
+    for hab in habilidades_normalizadas:
+        chave = hab.lower()
+        if chave not in habilidades_existentes_db:
+            nova = Habilidade(nome=hab)
+            sessao.add(nova)
+            sessao.flush()  # garante que o ID seja atribuído
+            habilidades_existentes_db[chave] = nova
+            novas_habilidades.append(hab)
+        ids_habilidades_assoc.append(habilidades_existentes_db[chave].id)
+
+    sessao.commit()
+
+    # 5. Criar associações na tabela relacional CarreiraHabilidade
+    for hid in ids_habilidades_assoc:
+        # Evita duplicação
         existente_rel = (
-            sessao.query(VagaHabilidade)
-            .filter_by(vaga_id=vaga_id, habilidade_id=hid)
+            sessao.query(CarreiraHabilidade)
+            .filter_by(carreira_id=carreira_id, habilidade_id=hid)
             .first()
         )
         if not existente_rel:
-            sessao.add(VagaHabilidade(vaga_id=vaga_id, habilidade_id=hid))
+            sessao.add(CarreiraHabilidade(carreira_id=carreira_id, habilidade_id=hid))
     sessao.commit()
 
-    # Retorna informações sobre a vaga e as habilidades
+    # 6. Preparar listas de retorno
+    existentes = [h for h in habilidades_normalizadas if h not in novas_habilidades]
+
     return {
-        "vaga_id": vaga.id,
-        "titulo": vaga.titulo,
-        "habilidades_extraidas": habilidades,
-        "habilidades_criadas": criadas,
+        "titulo": titulo,
+        "carreira_id": carreira_id,
+        "habilidades_extraidas": habilidades_normalizadas,
+        "habilidades_criadas": novas_habilidades,
         "habilidades_ja_existiam": existentes,
-        "fonte": "modelo" if habilidades else "modelo_sem_resultados"
     }
