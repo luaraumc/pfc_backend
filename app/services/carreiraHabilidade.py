@@ -1,4 +1,4 @@
-from app.models import CarreiraHabilidade # modelo de tabela definido no arquivo models.py
+from app.models import CarreiraHabilidade, Habilidade # modelo de tabela definido no arquivo models.py
 from app.schemas import CarreiraHabilidadeBase, CarreiraHabilidadeOut # schema de entrada e saída
 
 """
@@ -19,8 +19,20 @@ def criar_carreira_habilidade(session, carreira_habilidade_data: CarreiraHabilid
 
 # READ / GET - Lista todas as habilidades da carreira
 def listar_carreira_habilidades(session, carreira_id: int) -> list[CarreiraHabilidadeOut]:
-    habilidades = session.query(CarreiraHabilidade).filter_by(carreira_id=carreira_id).all()
-    return [CarreiraHabilidadeOut.model_validate(h) for h in habilidades]
+    habilidades = (
+        session.query(CarreiraHabilidade, Habilidade)
+        .join(Habilidade, CarreiraHabilidade.habilidade_id == Habilidade.id) # junta as tabelas CarreiraHabilidade e Habilidade
+        .filter(CarreiraHabilidade.carreira_id == carreira_id) # filtra pela carreira_id
+        .all() # pega todas as relações encontradas
+    )
+    resultado = []
+    for relacao, habilidade in habilidades:
+        rel_dict = relacao.__dict__.copy() # copia os dados da relação
+        rel_dict['habilidade_nome'] = habilidade.nome # adiciona o nome da habilidade ao dicionário
+        rel_dict['habilidade_id'] = habilidade.id # adiciona o id da habilidade ao dicionário
+        rel_dict.pop('_sa_instance_state', None) # Remove campos internos do SQLAlchemy
+        resultado.append(rel_dict) # adiciona o dicionário à lista de resultados
+    return resultado
 
 # DELETE / DELETE - Remove uma habilidade da carreira
 def remover_carreira_habilidade(session, carreira_id: int, habilidade_id: int) -> CarreiraHabilidadeOut | None:
