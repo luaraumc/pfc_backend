@@ -63,7 +63,7 @@ async def deletar(
 # ======================= HABILIDADES DA CARREIRA =======================
 
 # Listar habilidades da carreira
-@carreiraRouter.get("/{carreira_id}/habilidades", response_model=list[CarreiraHabilidadeOut])
+@carreiraRouter.get("/{carreira_id}/habilidades")
 async def listar_habilidades_carreira_route(
     carreira_id: int,
     session: Session = Depends(pegar_sessao)
