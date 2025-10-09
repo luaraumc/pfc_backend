@@ -19,6 +19,18 @@ def buscar_habilidade_por_id(session, id: int) -> HabilidadeOut | None:
     habilidade = session.query(Habilidade).filter(Habilidade.id == id).first()  # Busca a habilidade pelo id
     return HabilidadeOut.model_validate(habilidade) if habilidade else None # Se encontrada converte para schema de saída, senão retorna None
 
+# UPDATE / PUT - Atualiza os dados de uma habilidade existente usando schema
+def atualizar_habilidade(session, id: int, habilidade_data: HabilidadeBase) -> HabilidadeOut | None:
+    habilidade = session.query(Habilidade).filter(Habilidade.id == id).first()  # Busca a habilidade pelo id
+    if habilidade:
+        # Atualiza os campos da habilidade com os dados recebidos
+        for key, value in habilidade_data.model_dump(exclude_unset=True).items():
+            setattr(habilidade, key, value)
+        session.commit()
+        session.refresh(habilidade)
+        return HabilidadeOut.model_validate(habilidade) # Retorna a habilidade atualizada como schema de saída
+    return None
+
 # DELETE - Remove uma habilidade pelo id
 def deletar_habilidade(session, id: int) -> HabilidadeOut | None:
     habilidade = session.query(Habilidade).filter(Habilidade.id == id).first()  # Busca a habilidade pelo id
