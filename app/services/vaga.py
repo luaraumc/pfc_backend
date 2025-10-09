@@ -97,3 +97,16 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
 def listar_vagas(session: Session) -> list[VagaOut]:
     vagas = session.query(Vaga).order_by(Vaga.criado_em.desc()).all()
     return [VagaOut.model_validate(v) for v in vagas]
+
+# DELETE / DELETE - Remove a relação vaga-habilidade
+def remover_relacao_vaga_habilidade(session, vaga_id: int, habilidade_id: int) -> bool:
+    relacao = (
+        session.query(VagaHabilidade)
+        .filter_by(vaga_id=vaga_id, habilidade_id=habilidade_id)
+        .first()
+    )
+    if not relacao:
+        return False
+    session.delete(relacao)
+    session.commit()
+    return True
