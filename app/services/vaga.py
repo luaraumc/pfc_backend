@@ -85,28 +85,3 @@ def listar_vagas(session: Session) -> list[VagaOut]:
     vagas = session.query(Vaga).order_by(Vaga.criado_em.desc()).all()
     return [VagaOut.model_validate(v) for v in vagas]
 
-# Sugere carreira pelo título
-MAPEAMENTO_CARREIRA_PALAVRAS = {
-    "dados": "Analista de Dados",
-    "cientista": "Cientista de Dados",
-    "backend": "Desenvolvedor Backend",
-    "back":"Desenvolvedor Backend",
-    "back-end": "Desenvolvedor Backend",
-    "front": "Desenvolvedor Frontend",
-    "front-end": "Desenvolvedor Frontend",
-    "frontend": "Desenvolvedor Frontend",
-    "full": "Desenvolvedor Fullstack",
-    "segurança": "Analista de Segurança da Informação",
-    "rede": "Analista de Redes",
-    "infra": "Analista de Infraestrutura",
-}
-
-def sugerir_carreira_por_titulo(titulo: str, session: Session):
-    t = titulo.lower()
-    from app.models import Carreira
-    for chave, nome in MAPEAMENTO_CARREIRA_PALAVRAS.items():
-        if chave in t:
-            carreira = session.query(Carreira).filter(Carreira.nome == nome).first()
-            if carreira:
-                return carreira.id
-    return None
