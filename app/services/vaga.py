@@ -12,6 +12,7 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
     - Extrai habilidades
     - Cria habilidades novas
     - Associa habilidades à vaga e à carreira
+    - Incrementa frequência das habilidades na carreira
     Retorna info detalhada para frontend
     """
 
@@ -58,13 +59,23 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
         if not existe_rel_vaga:
             session.add(VagaHabilidade(vaga_id=nova_vaga.id, habilidade_id=habilidade.id))
 
-        # Associa à carreira, se houver
+        # Associa à carreira, se houver, e incrementa frequência
         if nova_vaga.carreira_id:
-            existe_rel_carreira = session.query(CarreiraHabilidade).filter_by(
+            rel_carreira = session.query(CarreiraHabilidade).filter_by(
                 carreira_id=nova_vaga.carreira_id, habilidade_id=habilidade.id
             ).first()
-            if not existe_rel_carreira:
-                session.add(CarreiraHabilidade(carreira_id=nova_vaga.carreira_id, habilidade_id=habilidade.id))
+
+            if rel_carreira:
+                # Incrementa frequência
+                rel_carreira.frequencia += 1
+            else:
+                # Cria nova associação com frequência inicial 1
+                rel_carreira = CarreiraHabilidade(
+                    carreira_id=nova_vaga.carreira_id,
+                    habilidade_id=habilidade.id,
+                    frequencia=1
+                )
+                session.add(rel_carreira)
 
     session.commit()
     session.refresh(nova_vaga)
@@ -79,6 +90,7 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
         "habilidades_criadas": habilidades_criadas,
         "habilidades_ja_existiam": habilidades_ja_existiam
     }
+
 
 # READ / GET - Lista todas as vagas
 def listar_vagas(session: Session) -> list[VagaOut]:
