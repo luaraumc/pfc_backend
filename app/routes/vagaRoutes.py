@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
-from app.schemas import VagaBase, VagaOut # schemas para validação de dados
-from app.services.vaga import criar_vaga, listar_vagas # serviços relacionados a vaga
+from app.schemas import VagaBase, VagaOut,VagaCompletaOut # schemas para validação de dados
+from app.services.vaga import criar_vaga, listar_vagas, sugerir_carreira_por_titulo # serviços relacionados a vaga
 from app.dependencies import pegar_sessao, requer_admin # cria sessões com o banco de dados, verifica o token e requer admin
+from app.models import Vaga, Habilidade # adiciona Habilidade para listagem
 
 
 # Inicializa o router
@@ -14,7 +15,7 @@ async def get_vagas(session: Session = Depends(pegar_sessao)):
     return listar_vagas(session)
 
 # Cadastrar vaga - AUTENTICADA
-@vagaRouter.post("/cadastro", response_model=VagaOut)
+@vagaRouter.post("/cadastro", response_model=VagaCompletaOut)
 async def criar_vaga_endpoint(
     payload: VagaBase,
     sessao: Session = Depends(pegar_sessao),
