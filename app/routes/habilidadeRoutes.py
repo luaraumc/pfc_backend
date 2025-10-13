@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.schemas import HabilidadeBase, HabilidadeOut # schemas para validação de dados
-from app.services.habilidade import criar_habilidade, listar_habilidades, deletar_habilidade # serviços relacionados a habilidade
+from app.schemas import HabilidadeOut # schemas para validação de dados
+from app.services.habilidade import listar_habilidades, buscar_habilidade_por_id, atualizar_habilidade, deletar_habilidade # serviços relacionados a habilidade
 from app.dependencies import pegar_sessao, requer_admin
 
 # Inicializa o router
@@ -12,19 +12,26 @@ habilidadeRouter = APIRouter(prefix="/habilidade", tags=["habilidade"])
 def listar(session: Session = Depends(pegar_sessao)):
 	return listar_habilidades(session)
 
-# Cadastrar habilidade - AUTENTICADA
-@habilidadeRouter.post("/cadastro")
-def cadastrar(
-	habilidade_schema: HabilidadeBase,
+# Buscar habilidade por ID
+@habilidadeRouter.get("/{habilidade_id}", response_model=HabilidadeOut)
+def buscar(habilidade_id: int, session: Session = Depends(pegar_sessao)):
+	habilidade = buscar_habilidade_por_id(session, habilidade_id)
+	if not habilidade:
+		raise HTTPException(status_code=404, detail="Habilidade não encontrada")
+	return habilidade
+
+# Atualizar habilidade - AUTENTICADA
+@habilidadeRouter.put("/atualizar/{habilidade_id}", response_model=HabilidadeOut)
+def atualizar(
+	habilidade_id: int,
+	habilidade_data: HabilidadeOut,
 	usuario: dict = Depends(requer_admin),
 	session: Session = Depends(pegar_sessao),
 ):
-	from app.models import Habilidade
-	existe = session.query(Habilidade).filter(Habilidade.nome.ilike(habilidade_schema.nome)).first()
-	if existe:
-		raise HTTPException(status_code=400, detail="Habilidade já cadastrada")
-	criada = criar_habilidade(session, habilidade_schema)
-	return {"message": f"Habilidade '{criada.nome}' cadastrada com sucesso"}
+	habilidade = atualizar_habilidade(session, habilidade_id, habilidade_data)
+	if not habilidade:
+		raise HTTPException(status_code=404, detail="Habilidade não encontrada")
+	return habilidade
 
 # Deletar habilidade - AUTENTICADA
 @habilidadeRouter.delete("/deletar/{habilidade_id}")
