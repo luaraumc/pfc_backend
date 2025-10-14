@@ -1,32 +1,29 @@
 {
-  "Analista de Dados": [
+  "1. Analista de Dados": [
     "descrição"
   ],
-  "Engenheiro de Dados": [
+  "2. Engenheiro de Dados": [
     "descrição"
   ],
-  "Cientista de Dados": [
+  "3. Cientista de Dados": [
     "descrição"
   ],
-  "Desenvolvedor Backend": [
+  "4. Desenvolvedor Backend": [
     "descrição"
   ],
-  "Desenvolvedor Frontend": [
+  "5. Desenvolvedor Frontend": [
     "descrição"
   ],
-  "Desenvolvedor Fullstack": [
+  "6. Desenvolvedor Fullstack": [
     "descrição"
   ],
-  "Analista de Projetos de TI": [
-    "descrição"
+  "7. Gestão de TI": [
+    "Projetos de TI / Governança de TI"
   ],
-  "Analista de Segurança da Informação": [
-    "descrição"
+  "8. Segurança da Informação": [
+    "Cibersegurança"
   ],
-  "Analista de Redes": [
-    "descrição"
-  ],
-  "Analista de Infraestrutura": [
-    "descrição"
+  "9. Infraestrutura de TI": [
+    "Redes / Suporte Técnico"
   ]
 }
