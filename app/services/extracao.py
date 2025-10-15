@@ -8,17 +8,39 @@ load_dotenv() # carrega chave da API do arquivo .env
 
 # Instrução para o modelo
 PROMPT_BASE = """
-Extraia somente uma lista de habilidades (competências técnicas ou soft skills claras) do texto de descrição de vaga abaixo.
-Responda apenas JSON válido no formato: {"habilidades": ["habilidade1", "habilidade2", ...]}
-- Não invente habilidades que não estejam mencionadas.
-- Use nomes curtos padronizados (ex: Java, Python, SQL, Git, Docker, Comunicação, Trabalho em equipe, Resolução de problemas).
-- Não inclua níveis (júnior, pleno), nem anos de experiência, nem versões (ex: 'Java 17' => 'Java').
-TEXTO:
+Você é um extrator de habilidades técnicas.
+Objetivo: a partir do texto da vaga abaixo, extraia SOMENTE hard skills presentes literalmente no texto e retorne APENAS um JSON válido.
+
+Instruções de saída:
+- Retorne exatamente: {"habilidades": ["..."]} — sem markdown, sem comentários, sem texto extra.
+
+Critérios de inclusão:
+- Inclua quaisquer competências técnicas literalmente citadas, abrangendo todas as áreas de TI: linguagens, runtimes, frameworks, bibliotecas, bancos de dados, dados/analytics, backend, frontend, mobile, cloud, DevOps/observabilidade, segurança, redes/infraestrutura, protocolos, padrões de API, sistemas operacionais e ferramentas.
+- Não inclua soft skills, cargos/funções, níveis (júnior/pleno/sênior), anos de experiência ou idiomas.
+- Não inclua nomes de certificações.
+
+Precisão:
+- Não invente. Se não houver habilidades técnicas, retorne {"habilidades": []}.
+
+Padronização de nomes:
+- Use nomes canônicos quando aplicável (lista não exaustiva — não limite a esta lista): Java, Python, JavaScript, TypeScript, Node.js, React, Angular, Vue.js, .NET, C#, C++, SQL, NoSQL, PostgreSQL, MySQL, MongoDB, Git, Docker, Kubernetes, AWS, GCP, Azure, Linux, Redis, GraphQL, Kafka, Jenkins, Terraform.
+- Preserve siglas em maiúsculas adequadas (SQL, REST, HTTP, CI/CD, TCP/IP, OSPF, BGP, VPN, VLAN, QoS).
+- Se a tecnologia não estiver listada, mantenha o nome específico mencionado, apenas removendo versões e sufixos redundantes quando não mudarem o sentido.
+
+Normalização adicional:
+- Não repita itens; a lista deve conter valores únicos.
+
+Exemplos de saída válida:
+{"habilidades": ["Python", "Django", "PostgreSQL", "Docker", "AWS", "Segurança de Redes"]}
+{"habilidades": ["Java", "Spring Boot", "SQL", "Kafka", "Kubernetes", "Roteamento"]}
+{"habilidades": ["Next.js", "Node.js", "MongoDB", "Administração de Redes"]}
+
+Texto da vaga:
 """
 
 # Padrões para normalização de habilidades
 PADROES = {
-    # Tecnologias
+    # Tecnologias e linguagens
     r"^python\d*$": "Python",
     r"^python 3$": "Python",
     r"^py$": "Python",
@@ -53,13 +75,26 @@ PADROES = {
     r"^ml$": "Machine Learning",
     r"^ia$": "Inteligência Artificial",
     r"^ai$": "Inteligência Artificial",
-    # Soft skills
-    r"^trabalho em equipe$": "Trabalho em equipe",
-    r"^comunicac[aã]o$": "Comunicação",
-    r"^boa comunicac[aã]o$": "Comunicação",
-    r"^resolu[cç][aã]o de problemas$": "Resolução de problemas",
-    r"^problem solving$": "Resolução de problemas",
-    r"^pensamento cr[ií]tico$": "Pensamento crítico",
+
+    # Protocolos / siglas amplamente usadas
+    r"^rest$": "REST",
+    r"^http$": "HTTP",
+    r"^tcp/?ip$": "TCP/IP",
+    r"^ospf$": "OSPF",
+    r"^bgp$": "BGP",
+    r"^vpn$": "VPN",
+    r"^vlan$": "VLAN",
+    r"^qos$": "QoS",
+
+    # Ferramentas/tecnologias comuns (sem limitar a infra)
+    r"^zabbix$": "Zabbix",
+    r"^prtg$": "PRTG",
+    r"^nagios$": "Nagios",
+    r"^cisco$": "Cisco",
+    r"^fortinet$": "Fortinet",
+    r"^mikrotik$": "Mikrotik",
+    r"^active directory$": "Active Directory",
+    r"^azure ad$": "Azure AD",
 }
 
 # lista de tuplas a partir do dicionário PADROES
