@@ -15,25 +15,24 @@ Instruções de saída:
 - Retorne exatamente: {"habilidades": ["..."]} — sem markdown, sem comentários, sem texto extra.
 
 Critérios de inclusão:
-- Inclua quaisquer competências técnicas literalmente citadas, abrangendo todas as áreas de TI: linguagens, runtimes, frameworks, bibliotecas, bancos de dados, dados/analytics, backend, frontend, mobile, cloud, DevOps/observabilidade, segurança, redes/infraestrutura, protocolos, padrões de API, sistemas operacionais e ferramentas.
-- Não inclua soft skills, cargos/funções, níveis (júnior/pleno/sênior), anos de experiência ou idiomas.
-- Não inclua nomes de certificações.
+- Inclua quaisquer competências técnicas literalmente citadas, abrangendo todas as áreas de TI: linguagens, runtimes, frameworks, bibliotecas, bancos de dados, dados/analytics, backend, frontend, mobile, cloud, DevOps, segurança, redes/infraestrutura, protocolos, padrões de API, sistemas operacionais e ferramentas.
+- Não inclua soft skills, cargos/funções, níveis (júnior/pleno/sênior), anos de experiência e idiomas.
+- Não inclua nomes de certificações/certificados.
 
 Precisão:
 - Não invente. Se não houver habilidades técnicas, retorne {"habilidades": []}.
 
 Padronização de nomes:
 - Use nomes canônicos quando aplicável (lista não exaustiva — não limite a esta lista): Java, Python, JavaScript, TypeScript, Node.js, React, Angular, Vue.js, .NET, C#, C++, SQL, NoSQL, PostgreSQL, MySQL, MongoDB, Git, Docker, Kubernetes, AWS, GCP, Azure, Linux, Redis, GraphQL, Kafka, Jenkins, Terraform.
-- Preserve siglas em maiúsculas adequadas (SQL, REST, HTTP, CI/CD, TCP/IP, OSPF, BGP, VPN, VLAN, QoS).
-- Se a tecnologia não estiver listada, mantenha o nome específico mencionado, apenas removendo versões e sufixos redundantes quando não mudarem o sentido.
+- Retorne cada habilidade no singular canônico quando aplicável (ex.: switches → switch, roteadores → roteador, firewalls → firewall, backups → backup, APIs → API, bancos de dados → banco de dados).
 
 Normalização adicional:
 - Não repita itens; a lista deve conter valores únicos.
 
 Exemplos de saída válida:
-{"habilidades": ["Python", "Django", "PostgreSQL", "Docker", "AWS", "Segurança de Redes"]}
-{"habilidades": ["Java", "Spring Boot", "SQL", "Kafka", "Kubernetes", "Roteamento"]}
-{"habilidades": ["Next.js", "Node.js", "MongoDB", "Administração de Redes"]}
+{"habilidades": ["Python", "Django", "PostgreSQL", "Docker", "AWS"]}
+{"habilidades": ["Java", "Spring Boot", "SQL", "Kafka", "Kubernetes"]}
+{"habilidades": ["Next.js", "Node.js", "MongoDB"]}
 
 Texto da vaga:
 """
