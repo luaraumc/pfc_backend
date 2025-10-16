@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.schemas import HabilidadeOut # schemas para validação de dados
+from app.schemas import HabilidadeBase, HabilidadeOut  # <- importe HabilidadeBase
 from app.services.habilidade import listar_habilidades, buscar_habilidade_por_id, atualizar_habilidade, deletar_habilidade # serviços relacionados a habilidade
 from app.dependencies import pegar_sessao, requer_admin
 
@@ -24,7 +24,7 @@ def buscar(habilidade_id: int, session: Session = Depends(pegar_sessao)):
 @habilidadeRouter.put("/atualizar/{habilidade_id}", response_model=HabilidadeOut)
 def atualizar(
 	habilidade_id: int,
-	habilidade_data: HabilidadeOut,
+	habilidade_data: HabilidadeBase,  # <- use o schema de entrada
 	usuario: dict = Depends(requer_admin),
 	session: Session = Depends(pegar_sessao),
 ):

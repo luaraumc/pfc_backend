@@ -64,6 +64,10 @@ PADROES = {
     r"^k8s$": "Kubernetes",
     r"^kubernetes$": "Kubernetes",
     r"^aws$": "AWS",
+    r"^aws waf$": "AWS WAF",
+    r"^aws shield$": "AWS Shield",
+    r"^aws firewall$": "AWS Firewall",
+    r"^aws iam$": "AWS IAM",
     r"^gcp$": "GCP",
     r"^azure$": "Azure",
     r"^sql$": "SQL",
@@ -75,8 +79,19 @@ PADROES = {
     r"^aprendizado de maquina$": "Machine Learning",
     r"^ia$": "Inteligência Artificial",
     r"^ai$": "Inteligência Artificial",
-
-    # Protocolos / siglas amplamente usadas
+    r"^automacao$": "Automação",
+    r"^aplicacao web$": "Aplicação Web",
+    r"^autenticacao$": "Autenticação",
+    r"^analise de riscos$": "Análise De Riscos",
+    r"^ad$": "Active Directory",
+    r"^antivirus$": "Antivirus",
+    r"^api$": "API",
+    r"^burp$": "Burp Suite",
+    r"^burp suite$": "Burp Suite",
+    r"^burpsuite$": "Burp Suite",
+    r"^cis$": "Cis Controls",
+    r"^cloud$": "Cloud Computing",
+    r"^computacao em nuvem$": "Cloud Computing",
     r"^rest$": "REST",
     r"^http$": "HTTP",
     r"^tcp/?ip$": "TCP/IP",
@@ -85,8 +100,6 @@ PADROES = {
     r"^vpn$": "VPN",
     r"^vlan$": "VLAN",
     r"^qos$": "QoS",
-
-    # Ferramentas/tecnologias comuns (sem limitar a infra)
     r"^zabbix$": "Zabbix",
     r"^prtg$": "PRTG",
     r"^nagios$": "Nagios",
@@ -95,17 +108,26 @@ PADROES = {
     r"^mikrotik$": "Mikrotik",
     r"^active directory$": "Active Directory",
     r"^azure ad$": "Azure AD",
-
-    # ETL e BI
+    r"^arquitetura distribuida$": "Arquitetura Distribuída",
+    r"^arvore de decisao$": "Árvore de Decisão",
+    r"^azure ad connect$": "Azure AD Connect",
+    r"^azure ai search$": "Azure AI Search",
+    r"^azure openai$": "Azure OpenAI",
+    r"^balanceador de carga$": "Balanceador de Carga",
+    r"^banco de dados$": "Banco de Dados",
+    r"^banco de dados relacional$": "Banco de Dados Relacional",
+    r"^banco de dados nao relacional$": "Banco de Dados Não Relacional",
+    r"^busca semantica$": "Busca Semântica",
+    r"^ciberseguranca$": "Cibersegurança",
+    r"^circuito de dados$": "Circuito de Dados",
+    r"^classificacao da informacao$": "Classificação da Informação",
+     # ETL e BI
     r"^etl$": "ETL",
     r"^ferramenta de etl$": "ETL",
     r"^ferramenta de bi$": "PowerBI",
     r"^bi$": "PowerBI",
     r"^powerbi$": "PowerBI",
     r"^power bi$": "PowerBI",
-    # Banco de Dados não relacional
-    r"^banco de dados nao relacional$": "Banco de Dados não relacional",
-    r"^banco de dados naorelacional$": "Banco de Dados não relacional",
 }
 
 # lista de tuplas a partir do dicionário PADROES
