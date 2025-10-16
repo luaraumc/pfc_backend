@@ -72,6 +72,7 @@ PADROES = {
     r"^dotnet$": ".NET",
     r"^machine learning$": "Machine Learning",
     r"^ml$": "Machine Learning",
+    r"^aprendizado de maquina$": "Machine Learning",
     r"^ia$": "Inteligência Artificial",
     r"^ai$": "Inteligência Artificial",
 
@@ -94,6 +95,17 @@ PADROES = {
     r"^mikrotik$": "Mikrotik",
     r"^active directory$": "Active Directory",
     r"^azure ad$": "Azure AD",
+
+    # ETL e BI
+    r"^etl$": "ETL",
+    r"^ferramenta de etl$": "ETL",
+    r"^ferramenta de bi$": "PowerBI",
+    r"^bi$": "PowerBI",
+    r"^powerbi$": "PowerBI",
+    r"^power bi$": "PowerBI",
+    # Banco de Dados não relacional
+    r"^banco de dados nao relacional$": "Banco de Dados não relacional",
+    r"^banco de dados naorelacional$": "Banco de Dados não relacional",
 }
 
 # lista de tuplas a partir do dicionário PADROES
@@ -105,11 +117,14 @@ def normalizar_habilidade(habilidade: str) -> str:
     habilidade = re.sub(r'\s+', ' ', habilidade)[:60] # reduz múltiplos espaços e limita tamanho
     nfkd = unicodedata.normalize('NFKD', habilidade) # normaliza acentuação
     habilidade = ''.join(c for c in nfkd if not unicodedata.combining(c)).lower() # remove acentos e converte para minúsculas
-    habilidade = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala)(\d{1,3}(?:\.\d+)*)\b', r'\1', habilidade) # remove versões
-    habilidade = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala)[ \-]+\d+(?:\.\d+){0,2}\b', r'\1', habilidade) # remove versões com hífen/espaço
-    habilidade = re.sub(r'\b(c\+\+|c#)[ \-]*\d{1,2}\b', r'\1', habilidade) # remove versões de C++ e C#
-    habilidade = re.sub(r'\b(dotnet|\.net)[ \-]*\d+(?:\.\d+){0,2}\b', r'dotnet', habilidade) # remove versões de .NET
-    habilidade = habilidade.strip(' .;,-') # remove caracteres indesejados nas extremidades
+    habilidade = re.sub(r'[^a-z0-9 ]', '', habilidade) # remove caracteres especiais, mantém espaço
+    habilidade = re.sub(r'\s+', ' ', habilidade).strip() # reduz múltiplos espaços e remove espaços nas extremidades
+
+    # Correções de português comuns
+    habilidade = habilidade.replace('nao relacional', 'não relacional')
+    habilidade = habilidade.replace('banco de dados nao relacional', 'banco de dados não relacional')
+    habilidade = habilidade.replace('banco de dados naorelacional', 'banco de dados não relacional')
+    habilidade = habilidade.replace('aprendizado de maquina', 'aprendizado de máquina')
 
     # Aplica padrões de normalização
     for regex, valor in PADROES_COMPILADOS:
