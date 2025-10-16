@@ -70,6 +70,7 @@ PADROES = {
     r"^aws iam$": "AWS IAM",
     r"^gcp$": "GCP",
     r"^azure$": "Azure",
+    r"^azure devops$": "Azure",
     r"^sql$": "SQL",
     r"^no ?sql$": "NoSQL",
     r"^ci/cd$": "CI/CD",
@@ -77,11 +78,20 @@ PADROES = {
     r"^machine learning$": "Machine Learning",
     r"^ml$": "Machine Learning",
     r"^aprendizado de maquina$": "Machine Learning",
+    r"^aprendizado de máquina$": "Machine Learning",
     r"^ia$": "Inteligência Artificial",
     r"^ai$": "Inteligência Artificial",
     r"^automacao$": "Automação",
+    r"^automação$": "Automação",
     r"^aplicacao web$": "Aplicação Web",
     r"^autenticacao$": "Autenticação",
+    r"^aplicação web$": "Aplicação Web",
+    r"^web app$": "Aplicação Web",
+    r"^web application$": "Aplicação Web",
+    r"^antivirus$": "Antivírus",
+    r"^antivírus$": "Antivírus",
+    r"^api$": "API",
+    r"^api rest$": "API REST",
     r"^analise de riscos$": "Análise De Riscos",
     r"^ad$": "Active Directory",
     r"^antivirus$": "Antivirus",
@@ -114,20 +124,62 @@ PADROES = {
     r"^azure ai search$": "Azure AI Search",
     r"^azure openai$": "Azure OpenAI",
     r"^balanceador de carga$": "Balanceador de Carga",
+    r"^rest api$": "API REST",
+    r"^rest$": "REST",
+    r"^api restful$": "API REST",
+    r"^restful api$": "API REST",
     r"^banco de dados$": "Banco de Dados",
+    r"^database$": "Banco de Dados",
     r"^banco de dados relacional$": "Banco de Dados Relacional",
+    r"^banco de dados relacional tradicional$": "Banco de Dados Relacional",
+    r"^banco de dados relacional sql$": "Banco de Dados Relacional",
     r"^banco de dados nao relacional$": "Banco de Dados Não Relacional",
+    r"^banco de dados não relacional$": "Banco de Dados Não Relacional",
+    r"^banco de dados naorelacional$": "Banco de Dados Não Relacional",
+    r"^banco de dados no relacional$": "Banco de Dados Não Relacional",
+    r"^banco de dados não-relacional$": "Banco de Dados Não Relacional",
+    r"^banco de dados no-relacional$": "Banco de Dados Não Relacional",
+    r"^banco de dados sql$": "SQL",
+    r"^banco de dados nosql$": "NoSQL",
     r"^busca semantica$": "Busca Semântica",
     r"^ciberseguranca$": "Cibersegurança",
     r"^circuito de dados$": "Circuito de Dados",
     r"^classificacao da informacao$": "Classificação da Informação",
-     # ETL e BI
-    r"^etl$": "ETL",
+    # Novas variações para habilidades já existentes
+    r"^ferramenta etl$": "ETL",
     r"^ferramenta de etl$": "ETL",
-    r"^ferramenta de bi$": "PowerBI",
-    r"^bi$": "PowerBI",
+    r"^etl$": "ETL",
+    r"^processo etl$": "ETL",
+    r"^etl tool$": "ETL",
+    r"^power-bi$": "PowerBI",
     r"^powerbi$": "PowerBI",
     r"^power bi$": "PowerBI",
+    r"^ferramenta de bi$": "PowerBI",
+    r"^bi$": "PowerBI",
+    r"^rest api$": "API REST",
+    r"^api restful$": "API REST",
+    r"^restful api$": "API REST",
+    r"^dev ops$": "DevOps",
+    r"^devops$": "DevOps",
+    r"^cloud$": "Cloud Computing",
+    r"^cloud computing$": "Cloud Computing",
+    r"^computacao em nuvem$": "Cloud Computing",
+    r"^computação em nuvem$": "Cloud Computing",
+    r"^active directory$": "Active Directory",
+    r"^ad$": "Active Directory",
+    r"^automacao$": "Automação",
+    r"^automação$": "Automação",
+    r"^aplicacao web$": "Aplicação Web",
+    r"^aplicação web$": "Aplicação Web",
+    r"^web app$": "Aplicação Web",
+    r"^web application$": "Aplicação Web",
+    r"^antivirus$": "Antivírus",
+    r"^antivírus$": "Antivírus",
+    r"^database$": "Banco de Dados",
+    r"^ferramenta de controle de versao$": "Git",
+    r"^programacao orientada a objetos$": "POO",
+    r"^programação orientada a objetos$": "POO",
+    r"^programação orientada à objetos$": "Programação Orientada à Objetos",
 }
 
 # lista de tuplas a partir do dicionário PADROES
@@ -148,13 +200,11 @@ def normalizar_habilidade(habilidade: str) -> str:
     # Aplica padrões de normalização
     for regex, valor in PADROES_COMPILADOS:
         if regex.fullmatch(habilidade):
-            return valor
+            return valor  # valor já está com acento e capitalização correta
 
-    # Transforma o primeiro caractere de uma string em maiúsculo
-    if len(habilidade.split()) <= 3 and not re.search(r'[A-Z]{2,}', habilidade):
-        habilidade = ' '.join(p.capitalize() for p in habilidade.split())
-
-    return habilidade
+    # Se não encontrou no padrão, capitaliza a primeira letra de cada palavra
+    habilidade_cap = ' '.join(p.capitalize() for p in habilidade.split())
+    return habilidade_cap
 
 # Padroniza a descrição da vaga para facilitar a extração
 def padronizar_descricao(descricao: str) -> str:
