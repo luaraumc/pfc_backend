@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends # cria dependências e exceções HTTP
 from app.services.carreira import criar_carreira, listar_carreiras, buscar_carreira_por_id, atualizar_carreira, deletar_carreira # serviços relacionados a carreira
-from app.services.carreiraHabilidade import listar_carreira_habilidades, remover_carreira_habilidade # serviços relacionados a habilidade da carreira
-from app.schemas import CarreiraBase, CarreiraOut, CarreiraHabilidadeOut  # schemas para validação de dados
+from app.services.carreiraHabilidade import criar_carreira_habilidade, listar_carreira_habilidades, remover_carreira_habilidade # serviços relacionados a habilidade da carreira
+from app.schemas import CarreiraBase, CarreiraOut, CarreiraHabilidadeBase, CarreiraHabilidadeOut  # schemas para validação de dados
 from app.dependencies import pegar_sessao, requer_admin # pegar a sessão do banco de dados, verificar o token e requerer admin
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
 from app.models import Carreira # modelo de tabela definido no arquivo models.py
@@ -82,4 +82,42 @@ async def remover_habilidade_carreira_route(
     if not resultado:
         raise HTTPException(status_code=404, detail="Relação carreira-habilidade não encontrada")
     return resultado
+
+# Adicionar habilidade à carreira - AUTENTICADA
+@carreiraRouter.post("/{carreira_id}/adicionar-habilidade", response_model=CarreiraHabilidadeOut)
+async def adicionar_habilidade_carreira_route(
+    carreira_id: int,
+    payload: CarreiraHabilidadeBase,
+    usuario: dict = Depends(requer_admin),
+    session: Session = Depends(pegar_sessao)
+):
+    # Força o carreira_id do path
+    data = payload.model_copy(update={"carreira_id": carreira_id, "frequencia": 1})
+    # Service cuida de incrementar se já existir
+    return criar_carreira_habilidade(session, data)
+
+# Adicionar habilidade por nome (cria habilidade se não existir) - AUTENTICADA
+@carreiraRouter.post("/{carreira_id}/adicionar-habilidade-por-nome", response_model=CarreiraHabilidadeOut)
+async def adicionar_habilidade_por_nome_route(
+    carreira_id: int,
+    body: dict,
+    usuario: dict = Depends(requer_admin),
+    session: Session = Depends(pegar_sessao)
+):
+    nome = (body.get("nome") or "").strip()
+    if not nome:
+        raise HTTPException(status_code=400, detail="Nome da habilidade é obrigatório")
+    from app.models import Habilidade
+    existente = session.query(Habilidade).filter(Habilidade.nome == nome).first()
+    if not existente:
+        # cria habilidade
+        nova = Habilidade(nome=nome)
+        session.add(nova)
+        session.commit()
+        session.refresh(nova)
+        habilidade_id = nova.id
+    else:
+        habilidade_id = existente.id
+    data = CarreiraHabilidadeBase(carreira_id=carreira_id, habilidade_id=habilidade_id, frequencia=1)
+    return criar_carreira_habilidade(session, data)
     
