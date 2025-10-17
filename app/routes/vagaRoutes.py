@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
-from app.schemas import VagaBase, VagaOut,VagaCompletaOut # schemas para validação de dados
-from app.services.vaga import criar_vaga, listar_vagas # serviços relacionados a vaga
+from app.schemas import VagaBase, VagaOut, VagaCompletaOut
+from app.services.vaga import (
+    criar_vaga,
+    listar_vagas,
+)
 from app.dependencies import pegar_sessao, requer_admin # cria sessões com o banco de dados, verifica o token e requer admin
 
 # Inicializa o router
@@ -31,6 +34,42 @@ async def criar_vaga_endpoint(
     }
     """
     return criar_vaga(sessao, payload)
+
+# ============== Fluxo em duas etapas (frontend admin) ==============
+# Cadastro básico (sem processar habilidades) - retorna VagaOut
+@vagaRouter.post("/cadastro-basico", response_model=VagaOut)
+async def criar_vaga_basico_endpoint(
+    payload: VagaBase,
+    sessao: Session = Depends(pegar_sessao),
+    admin=Depends(requer_admin)
+):
+    from app.services.vaga import criar_vaga_basica
+    return criar_vaga_basica(sessao, payload)
+
+# Pré-visualização de habilidades extraídas (array de strings)
+@vagaRouter.get("/{vaga_id}/preview-habilidades", response_model=list[str])
+async def preview_habilidades_endpoint(
+    vaga_id: int,
+    sessao: Session = Depends(pegar_sessao),
+    admin=Depends(requer_admin)
+):
+    from app.services.vaga import extrair_habilidades_vaga
+    return extrair_habilidades_vaga(sessao, vaga_id)
+
+# Confirmação das habilidades editadas pelo admin
+@vagaRouter.post("/{vaga_id}/confirmar-habilidades")
+async def confirmar_habilidades_endpoint(
+    vaga_id: int,
+    payload: dict,
+    sessao: Session = Depends(pegar_sessao),
+    admin=Depends(requer_admin)
+):
+    from app.services.vaga import confirmar_habilidades_vaga
+    habilidades = payload.get("habilidades", []) if isinstance(payload, dict) else []
+    try:
+        return confirmar_habilidades_vaga(sessao, vaga_id, habilidades)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 # Remover relação vaga-habilidade (admin)
 @vagaRouter.delete("/{vaga_id}/habilidades/{habilidade_id}")

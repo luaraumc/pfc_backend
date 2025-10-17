@@ -262,7 +262,18 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
 # READ / GET - Lista todas as vagas
 def listar_vagas(session: Session) -> list[VagaOut]:
     vagas = session.query(Vaga).order_by(Vaga.criado_em.desc()).all()
-    return [VagaOut.model_validate(v) for v in vagas]
+    # Precisa montar carreira_nome manualmente, pois o ORM não possui esse atributo diretamente
+    resultado: list[VagaOut] = []
+    for v in vagas:
+        item = {
+            "id": v.id,
+            "titulo": v.titulo,
+            "descricao": v.descricao,
+            "carreira_id": v.carreira_id,
+            "carreira_nome": v.carreira.nome if getattr(v, "carreira", None) else None,
+        }
+        resultado.append(VagaOut.model_validate(item))
+    return resultado
 
 # DELETE / DELETE - Remove a relação vaga-habilidade
 def remover_relacao_vaga_habilidade(session, vaga_id: int, habilidade_id: int) -> bool:
