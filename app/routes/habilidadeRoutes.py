@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
 from app.schemas import HabilidadeBase, HabilidadeOut  # <- importe HabilidadeBase
-from app.services.habilidade import listar_habilidades, buscar_habilidade_por_id, atualizar_habilidade, deletar_habilidade # serviços relacionados a habilidade
+from app.services.habilidade import criar_habilidade, listar_habilidades, buscar_habilidade_por_id, atualizar_habilidade, deletar_habilidade # serviços relacionados a habilidade
 from app.dependencies import pegar_sessao, requer_admin
 
 # Inicializa o router
@@ -44,3 +44,17 @@ def deletar(
 	if not habilidade:
 		raise HTTPException(status_code=404, detail="Habilidade não encontrada")
 	return {"message": f"Habilidade '{habilidade.nome}' deletada com sucesso"}
+
+# Cadastrar habilidade - AUTENTICADA
+@habilidadeRouter.post("/cadastro", response_model=HabilidadeOut)
+def cadastrar(
+	habilidade_data: HabilidadeBase,
+	usuario: dict = Depends(requer_admin),
+	session: Session = Depends(pegar_sessao),
+):
+	# Evitar duplicidade por nome
+	from app.models import Habilidade
+	existente = session.query(Habilidade).filter(Habilidade.nome == habilidade_data.nome).first()
+	if existente:
+		raise HTTPException(status_code=400, detail="Habilidade já cadastrada")
+	return criar_habilidade(session, habilidade_data)
