@@ -496,8 +496,8 @@ def normalizar_habilidade(habilidade: str, session: Session | None = None) -> st
     habilidade = re.sub(r'\s+', ' ', habilidade)[:60] # reduz múltiplos espaços e limita tamanho
     nfkd = unicodedata.normalize('NFKD', habilidade) # normaliza acentuação
     habilidade = ''.join(c for c in nfkd if not unicodedata.combining(c)).lower() # remove acentos e converte para minúsculas
-    habilidade = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala)(\d{1,3}(?:\.\d+)*)\b', r'\1', habilidade) # remove versões
-    habilidade = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala)[ \-]+\d+(?:\.\d+){0,2}\b', r'\1', habilidade) # remove versões com hífen/espaço
+    habilidade = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala|windows)(\d{1,3}(?:\.\d+)*)\b', r'\1', habilidade) # remove versões
+    habilidade = re.sub(r'\b(python|node|java|go|ruby|php|rust|scala|windows)[ \-]+\d+(?:\.\d+){0,2}\b', r'\1', habilidade) # remove versões com hífen/espaço
     habilidade = re.sub(r'\b(c\+\+|c#)[ \-]*\d{1,2}\b', r'\1', habilidade) # remove versões de C++ e C#
     habilidade = re.sub(r'\b(dotnet|\.net)[ \-]*\d+(?:\.\d+){0,2}\b', r'dotnet', habilidade) # remove versões de .NET
     habilidade = habilidade.strip(' .;,-') # remove caracteres indesejados nas extremidades
@@ -506,13 +506,17 @@ def normalizar_habilidade(habilidade: str, session: Session | None = None) -> st
     # 1) Tenta com padrões vindos do banco
     for regex, valor in carregar_padroes_db(session) or []:
         if regex.fullmatch(habilidade):
-            return valor
+            return valor  # valor já está com acento e capitalização correta
 
-    # Transforma o primeiro caractere de uma string em maiúsculo
-    if len(habilidade.split()) <= 3 and not re.search(r'[A-Z]{2,}', habilidade):
-        habilidade = ' '.join(p.capitalize() for p in habilidade.split())
+    # Se não encontrou no padrão, capitaliza a primeira letra de cada palavra
+    habilidade_cap = ' '.join(p.capitalize() for p in habilidade.split())
+    return habilidade_cap
 
-    return habilidade
+# Mapeia uma habilidade normalizada para sua categoria (a partir do dicionário criado acima)
+DEFAULT_CATEGORIA = "Outros"
+
+def obter_categoria(habilidade_normalizada: str) -> str:
+    return CATEGORIA_POR_HABILIDADE.get(habilidade_normalizada, DEFAULT_CATEGORIA)
 
 # Mapeia uma habilidade normalizada para sua categoria (a partir do dicionário criado acima)
 DEFAULT_CATEGORIA = "Outros"
