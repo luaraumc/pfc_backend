@@ -143,7 +143,7 @@ class CursoConhecimentoOut(CursoConhecimentoBase):
 class CarreiraHabilidadeBase(BaseModel):
     carreira_id: int
     habilidade_id: int
-    frequencia: int  # nova coluna para frequência
+    frequencia: int = 1  # frequência gerenciada automaticamente (default 1)
 
 class CarreiraHabilidadeOut(CarreiraHabilidadeBase):
     id: int
