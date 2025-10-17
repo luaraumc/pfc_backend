@@ -1,7 +1,7 @@
 from app.models import Vaga, Habilidade, VagaHabilidade, CarreiraHabilidade # modelos de tabela definidos no arquivo models.py
 from app.schemas import VagaBase, VagaOut # schema de entrada e saída
 from sqlalchemy.orm import Session # manipular sessões do banco de dados
-from app.services.extracao import padronizar_descricao, extrair_habilidades_descricao, normalizar_habilidade, deduplicar # funções de extração e padronização
+from app.services.extracao import padronizar_descricao, extrair_habilidades_descricao, normalizar_habilidade, deduplicar, obter_categoria # funções de extração e padronização
 
 # ======================= CRUD =======================
 
@@ -28,14 +28,14 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
     session.refresh(nova_vaga)
 
     # Extrai habilidades
-    habilidades_extraidas = extrair_habilidades_descricao(nova_vaga.descricao)
+    habilidades_extraidas = extrair_habilidades_descricao(nova_vaga.descricao, session=session)
 
     vistos = set() # conjunto para rastrear habilidades já vistas
     finais = [] # lista final de habilidades deduplicadas
 
     # Deduplica habilidades extraídas
     for h in habilidades_extraidas:
-        h_norm = normalizar_habilidade(h)
+        h_norm = normalizar_habilidade(h, session=session)
         chave = deduplicar(h_norm)
         if chave not in vistos:
             vistos.add(chave)
@@ -50,7 +50,8 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
         habilidade = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_padronizado)).first()
         # Cria se não existir
         if not habilidade:
-            habilidade = Habilidade(nome=nome_padronizado)
+            categoria = obter_categoria(nome_padronizado)
+            habilidade = Habilidade(nome=nome_padronizado, categoria=categoria)
             session.add(habilidade)
             session.flush()
             habilidades_criadas.append(nome_padronizado)
