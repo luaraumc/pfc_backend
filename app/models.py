@@ -41,6 +41,7 @@ class Habilidade(Base):
 	__tablename__ = 'habilidade'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), unique=True, nullable=False)
+	categoria = Column(String(120), nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
 # Modelo da tabela "conhecimento"
@@ -48,6 +49,14 @@ class Conhecimento(Base):
 	__tablename__ = 'conhecimento'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(300), unique=True, nullable=False)
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+
+# Tabela de padrões para normalização de habilidades
+class Normalizacao(Base):
+	__tablename__ = 'normalizacao'
+	id = Column(Integer, primary_key=True, index=True)
+	nome = Column(String(200), unique=True, nullable=False)  # regex/padrão (ex.: r"^node(js)?$")
+	nome_padronizado = Column(String(150), nullable=False)   # valor canônico (ex.: "Node.js")
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
 # Modelo da tabela "compatibilidade"
@@ -90,14 +99,14 @@ class LogExclusao(Base):
 
 # Modelo da tabela "vaga"
 class Vaga(Base):
-    __tablename__ = 'vaga'
-    id = Column(Integer, primary_key=True, index=True)
-    titulo = Column(String(200), nullable=False)  # removido unique=True
-    descricao = Column(Text, nullable=False)
-    criado_em = Column(DateTime, server_default=func.now(), nullable=False)
-    atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
-    carreira_id = Column(Integer, ForeignKey("carreira.id", ondelete="SET NULL"), nullable=True)
-    carreira = relationship("Carreira", backref="vagas")
+	__tablename__ = 'vaga'
+	id = Column(Integer, primary_key=True, index=True)
+	titulo = Column(String(200), nullable=False)  # removido unique=True
+	descricao = Column(Text, nullable=False, unique=True)
+	criado_em = Column(DateTime, server_default=func.now(), nullable=False)
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+	carreira_id = Column(Integer, ForeignKey("carreira.id", ondelete="SET NULL"), nullable=True)
+	carreira = relationship("Carreira", backref="vagas")
 
 # backref: cria um relacionamento bidirecional entre os modelos
 
