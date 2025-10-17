@@ -28,6 +28,7 @@ from app.routes.cursoRoutes import cursoRouter
 from app.routes.habilidadeRoutes import habilidadeRouter
 from app.routes.conhecimentoRoutes import conhecimentoRouter
 from app.routes.vagaRoutes import vagaRouter
+from app.routes.conhecimentoCategoriaRoutes import conhecimentoCategoriaRouter
 
 # incluindo as rotas na aplicação FastAPI instanciada
 app.include_router(authRouter)
@@ -37,3 +38,4 @@ app.include_router(cursoRouter)
 app.include_router(habilidadeRouter)
 app.include_router(conhecimentoRouter)
 app.include_router(vagaRouter)
+app.include_router(conhecimentoCategoriaRouter)

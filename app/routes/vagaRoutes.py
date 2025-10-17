@@ -33,7 +33,12 @@ async def criar_vaga_endpoint(
         "habilidades_ja_existiam": list[str]
     }
     """
-    return criar_vaga(sessao, payload)
+    try:
+        return criar_vaga(sessao, payload)
+    except ValueError as e:
+        if str(e) == "DUPLICATE_VAGA_DESCRICAO":
+            raise HTTPException(status_code=409, detail="Já existe uma vaga com a mesma descrição.")
+        raise
 
 # ============== Fluxo em duas etapas (frontend admin) ==============
 # Cadastro básico (sem processar habilidades) - retorna VagaOut
@@ -44,7 +49,12 @@ async def criar_vaga_basico_endpoint(
     admin=Depends(requer_admin)
 ):
     from app.services.vaga import criar_vaga_basica
-    return criar_vaga_basica(sessao, payload)
+    try:
+        return criar_vaga_basica(sessao, payload)
+    except ValueError as e:
+        if str(e) == "DUPLICATE_VAGA_DESCRICAO":
+            raise HTTPException(status_code=409, detail="Já existe uma vaga com a mesma descrição.")
+        raise
 
 # Pré-visualização de habilidades extraídas (array de strings)
 @vagaRouter.get("/{vaga_id}/preview-habilidades", response_model=list[str])

@@ -172,12 +172,14 @@ class UsuarioHabilidadeOut(UsuarioHabilidadeBase):
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
-#Schema de ConhecimentoHabilidade
-class ConhecimentoHabilidadeBase(BaseModel):
-    conhecimento_id: int
-    habilidade_id: int
+#Schema de ConhecimentoCategoria
 
-class ConhecimentoHabilidadeOut(ConhecimentoHabilidadeBase):
+class ConhecimentoCategoriaBase(BaseModel):
+    conhecimento_id: int
+    categoria_id: int
+    peso: int | None = None
+
+class ConhecimentoCategoriaOut(ConhecimentoCategoriaBase):
     id: int
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}

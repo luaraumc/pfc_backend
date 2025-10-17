@@ -1,6 +1,7 @@
 from app.models import Vaga, Habilidade, VagaHabilidade, CarreiraHabilidade, Categoria # modelos de tabela definidos no arquivo models.py
 from app.schemas import VagaBase, VagaOut # schema de entrada e saída
 from sqlalchemy.orm import Session # manipular sessões do banco de dados
+from sqlalchemy.exc import IntegrityError
 from app.services.extracao import padronizar_descricao, extrair_habilidades_descricao, normalizar_habilidade, deduplicar # funções de extração e padronização
 
 # ======================= CRUD =======================
@@ -54,7 +55,17 @@ def criar_vaga_basica(session: Session, vaga_data: VagaBase) -> VagaOut:
     vaga_data.descricao = padronizar_descricao(vaga_data.descricao)
     nova_vaga = Vaga(**vaga_data.model_dump())
     session.add(nova_vaga)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError as e:
+        # Trata duplicidade de descrição (constraint unique)
+        session.rollback()
+        msg = str(getattr(e, "orig", e)).lower()
+        if "uq_vaga_descricao" in msg or ("unique" in msg and "descricao" in msg) or "duplicate key" in msg:
+            # Use um ValueError sem acoplar ao FastAPI aqui; a rota converterá para HTTP 409
+            raise ValueError("DUPLICATE_VAGA_DESCRICAO")
+        # Propaga outros erros de integridade
+        raise
     session.refresh(nova_vaga)
     return VagaOut.model_validate({
         "id": nova_vaga.id,
@@ -175,7 +186,15 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> dict:
     # Cria a vaga
     nova_vaga = Vaga(**vaga_data.model_dump())
     session.add(nova_vaga)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError as e:
+        session.rollback()
+        msg = str(getattr(e, "orig", e)).lower()
+        if "uq_vaga_descricao" in msg or ("unique" in msg and "descricao" in msg) or "duplicate key" in msg:
+            # Mapeie para ValueError para a rota responder 409
+            raise ValueError("DUPLICATE_VAGA_DESCRICAO")
+        raise
     session.refresh(nova_vaga)
 
     # Extrai habilidades
