@@ -50,6 +50,7 @@ class UsuarioOut(UsuarioBase):
 # Schema de Habilidade
 class HabilidadeBase(BaseModel):
     nome: str
+    categoria: str
 
 class HabilidadeOut(HabilidadeBase):
     id: int
