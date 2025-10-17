@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
 from app.schemas import VagaBase, VagaOut,VagaCompletaOut # schemas para validação de dados
-from app.services.vaga import criar_vaga, listar_vagas # serviços relacionados a vaga
+from app.services.vaga import criar_vaga, listar_vagas, criar_vaga_basica, extrair_habilidades_vaga, confirmar_habilidades_vaga # serviços relacionados a vaga
 from app.dependencies import pegar_sessao, requer_admin # cria sessões com o banco de dados, verifica o token e requer admin
 
 # Inicializa o router
@@ -31,6 +31,40 @@ async def criar_vaga_endpoint(
     }
     """
     return criar_vaga(sessao, payload)
+
+# Cadastrar vaga (básico, sem salvar habilidades) - AUTENTICADA
+@vagaRouter.post("/cadastro-basico", response_model=VagaOut)
+async def criar_vaga_basico_endpoint(
+    payload: VagaBase,
+    sessao: Session = Depends(pegar_sessao),
+    admin=Depends(requer_admin)
+):
+    return criar_vaga_basica(sessao, payload)
+
+# Pré-visualizar habilidades extraídas (não persiste) - AUTENTICADA
+@vagaRouter.get("/{vaga_id}/preview-habilidades", response_model=list[str])
+async def preview_habilidades_endpoint(
+    vaga_id: int,
+    sessao: Session = Depends(pegar_sessao),
+    admin=Depends(requer_admin)
+):
+    return extrair_habilidades_vaga(sessao, vaga_id)
+
+# Confirmar habilidades finais para a vaga - AUTENTICADA
+@vagaRouter.post("/{vaga_id}/confirmar-habilidades")
+async def confirmar_habilidades_endpoint(
+    vaga_id: int,
+    body: dict,
+    sessao: Session = Depends(pegar_sessao),
+    admin=Depends(requer_admin)
+):
+    habilidades = body.get("habilidades") or []
+    if not isinstance(habilidades, list):
+        raise HTTPException(status_code=400, detail="Campo 'habilidades' deve ser uma lista")
+    try:
+        return confirmar_habilidades_vaga(sessao, vaga_id, habilidades)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 # Remover relação vaga-habilidade (admin)
 @vagaRouter.delete("/{vaga_id}/habilidades/{habilidade_id}")
