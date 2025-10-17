@@ -9,6 +9,14 @@ exclude_unset: gera um dicionário para atualizar apenas os campos que foram inf
 
 # ======================= CRUD =======================
 
+# CREATE - Cria uma nova habilidade
+def criar_habilidade(session, habilidade_data: HabilidadeBase) -> HabilidadeOut:
+    nova = Habilidade(**habilidade_data.model_dump())
+    session.add(nova)
+    session.commit()
+    session.refresh(nova)
+    return HabilidadeOut.model_validate(nova)
+
 # READ - Lista todas as habilidades
 def listar_habilidades(session) -> list[HabilidadeOut]:
     habilidades = session.query(Habilidade).all()  # Busca todas as habilidades no banco
