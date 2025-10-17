@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.schemas import HabilidadeBase, HabilidadeOut  # <- importe HabilidadeBase
+from app.schemas import HabilidadeBase, HabilidadeOut, HabilidadeAtualizar  # <- importe HabilidadeBase
+from app.models import Categoria
 from app.services.habilidade import listar_habilidades, buscar_habilidade_por_id, atualizar_habilidade, deletar_habilidade # serviços relacionados a habilidade
 from app.dependencies import pegar_sessao, requer_admin
 
@@ -24,7 +25,7 @@ def buscar(habilidade_id: int, session: Session = Depends(pegar_sessao)):
 @habilidadeRouter.put("/atualizar/{habilidade_id}", response_model=HabilidadeOut)
 def atualizar(
 	habilidade_id: int,
-	habilidade_data: HabilidadeBase,  # <- use o schema de entrada
+	habilidade_data: HabilidadeAtualizar,  # <- agora aceita nome e categoria_id
 	usuario: dict = Depends(requer_admin),
 	session: Session = Depends(pegar_sessao),
 ):
@@ -44,3 +45,9 @@ def deletar(
 	if not habilidade:
 		raise HTTPException(status_code=404, detail="Habilidade não encontrada")
 	return {"message": f"Habilidade '{habilidade.nome}' deletada com sucesso"}
+
+# Listar categorias
+@habilidadeRouter.get("/categorias", response_model=list[dict])
+def listar_categorias(session: Session = Depends(pegar_sessao)):
+	categorias = session.query(Categoria).order_by(Categoria.nome.asc()).all()
+	return [{"id": c.id, "nome": c.nome} for c in categorias]
