@@ -50,9 +50,20 @@ class UsuarioOut(UsuarioBase):
 # Schema de Habilidade
 class HabilidadeBase(BaseModel):
     nome: str
-    categoria: str
 
 class HabilidadeOut(HabilidadeBase):
+    id: int
+    categoria_id: int
+    atualizado_em: datetime
+    categoria: str | None = None
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
+# Schemas de Categoria
+class CategoriaBase(BaseModel):
+    nome: str
+
+class CategoriaOut(CategoriaBase):
     id: int
     atualizado_em: datetime
 
@@ -196,6 +207,10 @@ class AtualizarUsuarioSchema(BaseModel):
     email: str
     carreira_id: int
     curso_id: int
+
+class HabilidadeAtualizar(BaseModel):
+    nome: str | None = None
+    categoria_id: int | None = None
 
 class SolicitarCodigoSchema(BaseModel):
     email: str
