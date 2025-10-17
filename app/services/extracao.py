@@ -4,7 +4,7 @@ from typing import List # tipos para listas
 from sqlalchemy.orm import Session
 from openai import OpenAI # cliente OpenAI para chamadas à API
 import json, re, unicodedata # manipulação de JSON, expressões regulares e normalização de texto
-from app.models import Normalizacao # modelo de tabela definido no arquivo models.py
+from app.models import Normalizacao, Categoria # modelos de tabela definidos no arquivo models.py
 
 load_dotenv() # carrega chave da API do arquivo .env
 
@@ -14,7 +14,8 @@ Você é um extrator de habilidades técnicas.
 Objetivo: a partir do texto da vaga abaixo, extraia SOMENTE hard skills presentes literalmente no texto e retorne APENAS um JSON válido.
 
 Instruções de saída:
-- Retorne exatamente: {"habilidades": ["..."]} — sem markdown, sem comentários, sem texto extra.
+- Retorne exatamente: {"habilidades": [{"nome": "...", "categoria": "<uma das categorias listadas>"}, ...]} — sem markdown, sem comentários, sem texto extra.
+- A categoria deve ser escolhida EXCLUSIVAMENTE da lista de categorias permitidas abaixo.
 
 Critérios de inclusão:
 - Inclua quaisquer competências técnicas literalmente citadas, abrangendo todas as áreas de TI: linguagens, runtimes, frameworks, bibliotecas, bancos de dados, dados/analytics, backend, frontend, mobile, cloud, DevOps, segurança, redes/infraestrutura, protocolos, padrões de API, sistemas operacionais e ferramentas.
@@ -41,11 +42,38 @@ Abreviações:
 - Normalize abreviações comuns para seus nomes canônicos quando aplicável (ex.: "Ms Project"/"Msft Project" → "Microsoft Project").
 
 Exemplos de saída válida:
-{"habilidades": ["Python", "Django", "PostgreSQL", "Docker", "AWS"]}
-{"habilidades": ["Java", "Spring Boot", "SQL", "Kafka", "Kubernetes"]}
-{"habilidades": ["Next.js", "Node.js", "MongoDB"]}
+{"habilidades": [{"nome": "Python", "categoria": "Linguagens"}, {"nome": "Django", "categoria": "Backend/Framework"}]}
+{"habilidades": [{"nome": "Java", "categoria": "Linguagens"}, {"nome": "Spring Boot", "categoria": "Backend/Framework"}]}
 
-Texto da vaga:
+Categorias permitidas (escolha exata de um destes nomes):
+ - Aplicações de Negócio
+ - Arquitetura
+ - Backend
+ - Banco de Dados
+ - Bibliotecas/SDKs
+ - Cloud
+ - Compliance
+ - Conceitos
+ - Dados
+ - Desenvolvimento
+ - DevOps
+ - Ferramentas
+ - Governança e Gestão
+ - IA/ML
+ - Identidade
+ - Identidade/MDM
+ - Infraestrutura
+ - ITSM
+ - Linguagens e formatos
+ - Mensageria
+ - Modelos de Entrega
+ - Observabilidade
+ - Produtividade
+ - Qualidade
+ - Redes
+ - Segurança
+ - Sistemas Operacionais
+ - Web
 """
 
 # Carrega padrões de normalização da base de dados
@@ -58,60 +86,71 @@ def carregar_padroes_db(session: Session | None) -> list[tuple[re.Pattern, str]]
     except Exception:
         return []
 
+# Lista os nomes de categorias existentes no banco (para orientar o modelo)
+def listar_categorias_db(session: Session | None) -> list[str]:
+    if session is None:
+        return []
+    try:
+        categorias = session.query(Categoria).order_by(Categoria.nome.asc()).all()
+        return [c.nome for c in categorias]
+    except Exception:
+        return []
+
 # Categorias por habilidade normalizada
 CATEGORIA_POR_HABILIDADE = {
     # API/Web
-    "API": "Web/API",
-    "REST": "Web/API",
-    "OpenAPI": "Web/API",
-    "Web Service": "Web/API",
-    "WebSocket": "Web/API",
-    "GraphQL": "Web/API",
-    "Storefront API": "Web/API",
-    "Context API": "Web/API",
-    "Single Page Applications": "Web/Frontend",
-    "Server-Side Rendering": "Web/Frontend",
-    "Geração de Sites Estáticos": "Web/Frontend",
-    "WebGL": "Web/Frontend",
+    "API": "Web",
+    "REST": "Web",
+    "OpenAPI": "Web",
+    "Web Service": "Web",
+    "WebSocket": "Web",
+    "GraphQL": "Web",
+    "Storefront API": "Web",
+    "Context API": "Web",
+    "Single Page Applications": "Web",
+    "Server-Side Rendering": "Web",
+    "Geração de Sites Estáticos": "Web",
+    "WebGL": "Web",
 
     # Frontend/UI
-    "Angular": "Web/Frontend",
-    "Angular CLI": "Web/Frontend",
-    "React": "Web/Frontend",
-    "Vue.js": "Web/Frontend",
-    "Material UI": "Web/Frontend",
-    "Tailwind": "Web/Frontend",
-    "NgRx": "Web/Frontend",
-    "RxJS": "Web/Frontend",
+    "Angular": "Web",
+    "Angular CLI": "Web",
+    "React": "Web",
+    "Vue.js": "Web",
+    "Material UI": "Web",
+    "Tailwind": "Web",
+    "NgRx": "Web",
+    "RxJS": "Web",
 
     # Backend/Frameworks
-    ".NET": "Backend/Framework",
-    "ASP.NET": "Backend/Framework",
-    "ASP Clássico": "Backend/Framework",
-    "Express.js": "Backend/Framework",
-    "FastAPI": "Backend/Framework",
-    "Spring": "Backend/Framework",
-    "NestJS": "Backend/Framework",
-    "JavaServer Pages": "Backend/Framework",
-    "Enterprise JavaBeans": "Backend/Framework",
-    "Servidor de Aplicação": "Backend/Execução",
-    "Apache Tomcat": "Backend/Execução",
-    "WildFly": "Backend/Execução",
-    "NGINX": "Backend/Execução",
-    "Microsoft IIS": "Backend/Execução",
+    ".NET": "Backend",
+    "ASP.NET": "Backend",
+    "ASP Clássico": "Backend",
+    "Express.js": "Backend",
+    "FastAPI": "Backend",
+    "Spring": "Backend",
+    "NestJS": "Backend",
+    "JavaServer Pages": "Backend",
+    "Enterprise JavaBeans": "Backend",
+    "Servidor de Aplicação": "Backend",
+    "Apache Tomcat": "Backend",
+    "WildFly": "Backend",
+    "NGINX": "Backend",
+    "Microsoft IIS": "Backend",
+    "Express.js": "Backend",
 
     # Linguagens e formatos
-    "JavaScript": "Linguagens",
-    "TypeScript": "Linguagens",
-    "Python": "Linguagens",
-    "GO": "Linguagens",
-    "Visual Basic": "Linguagens",
-    "SQL": "Linguagens",
-    "PL/SQL": "Linguagens",
-    "JSON": "Linguagens",
-    "XML": "Linguagens",
-    "YAML": "Linguagens",
-    "ECMAScript": "Linguagens",
+    "JavaScript": "Linguagens e formatos",
+    "TypeScript": "Linguagens e formatos",
+    "Python": "Linguagens e formatos",
+    "GO": "Linguagens e formatos",
+    "Visual Basic": "Linguagens e formatos",
+    "SQL": "Linguagens e formatos",
+    "PL/SQL": "Linguagens e formatos",
+    "JSON": "Linguagens e formatos",
+    "XML": "Linguagens e formatos",
+    "YAML": "Linguagens e formatos",
+    "ECMAScript": "Linguagens e formatos",
 
     # Bibliotecas/SDKs
     "AIOHTTP": "Bibliotecas/SDKs",
@@ -126,297 +165,302 @@ CATEGORIA_POR_HABILIDADE = {
     "JPA": "Bibliotecas/SDKs",
 
     # Dados/Big Data/ETL/Analytics
-    "Apache Airflow": "Dados/Big Data",
-    "AWS Glue": "Dados/Big Data",
-    "DataOps": "Dados/Big Data",
-    "ETL": "Dados/Big Data",
-    "ELT": "Dados/Big Data",
-    "Looker Studio": "Dados/Analytics",
-    "Power BI": "Dados/Analytics",
-    "PowerBI": "Dados/Analytics",
-    "Modelagem Dimensional": "Dados/Modelagem",
-    "Modelagem de Dados": "Dados/Modelagem",
-    "Common Table Expression": "Dados/SQL",
-    "Otimização de Consultas SQL": "Dados/SQL",
-    "Registro Estruturado": "Observabilidade/Logs",
+    "Apache Airflow": "Dados",
+    "AWS Glue": "Dados",
+    "DataOps": "Dados",
+    "ETL": "Dados",
+    "ELT": "Dados",
+    "Looker Studio": "Dados",
+    "Power BI": "Dados",
+    "Modelagem Dimensional": "Dados",
+    "Modelagem de Dados": "Dados",
+    "Common Table Expression": "Dados",
+    "Otimização de Consultas SQL": "Dados",
 
     # Bancos de dados
-    "PostgreSQL": "Banco de Dados/Relacional",
-    "MySQL": "Banco de Dados/Relacional",
-    "SQL Server": "Banco de Dados/Relacional",
-    "IBM Db2": "Banco de Dados/Relacional",
-    "Oracle DB": "Banco de Dados/Relacional",
-    "AlloyDB": "Banco de Dados/Relacional",
-    "MongoDB": "Banco de Dados/NoSQL",
-    "Amazon DynamoDB": "Banco de Dados/NoSQL",
-    "Amazon DocumentDB": "Banco de Dados/NoSQL",
-    "LiteDB": "Banco de Dados/NoSQL",
-    "Banco de Dados": "Banco de Dados/Conceitos",
-    "Banco de Dados Relacional": "Banco de Dados/Conceitos",
-    "Banco de Dados Não Relacional": "Banco de Dados/Conceitos",
-    "NoSQL": "Banco de Dados/Conceitos",
+    "PostgreSQL": "Banco de Dados",
+    "MySQL": "Banco de Dados",
+    "SQL Server": "Banco de Dados",
+    "IBM Db2": "Banco de Dados",
+    "Oracle DB": "Banco de Dados",
+    "AlloyDB": "Banco de Dados",
+    "MongoDB": "Banco de Dados",
+    "Amazon DynamoDB": "Banco de Dados",
+    "Amazon DocumentDB": "Banco de Dados",
+    "LiteDB": "Banco de Dados",
+    "Banco de Dados": "Banco de Dados",
+    "Banco de Dados Relacional": "Banco de Dados",
+    "Banco de Dados Não Relacional": "Banco de Dados",
+    "NoSQL": "Banco de Dados",
 
     # Mensageria/Eventos/Streaming
-    "Apache Kafka": "Mensageria/Streaming",
-    "RabbitMQ": "Mensageria/Filas",
-    "Apache ActiveMQ": "Mensageria/Filas",
-    "Amazon MSK": "Mensageria/Streaming",
-    "AWS SQS": "Mensageria/Filas",
-    "Amazon EventBridge": "Mensageria/Eventos",
-    "Pub/Sub": "Mensageria/Eventos",
-    "Enfileiramento de Mensagens": "Mensageria/Conceitos",
+    "Apache Kafka": "Mensageria",
+    "RabbitMQ": "Mensageria",
+    "Apache ActiveMQ": "Mensageria",
+    "Amazon MSK": "Mensageria",
+    "AWS SQS": "Mensageria",
+    "Amazon EventBridge": "Mensageria",
+    "Pub/Sub": "Mensageria",
+    "Enfileiramento de Mensagens": "Mensageria",
 
     # DevOps/CI-CD/Contêineres
-    "DevOps": "DevOps/Práticas",
-    "Git": "DevOps/SCM",
-    "GitLab": "DevOps/SCM",
-    "GitHub": "DevOps/SCM",
-    "GitLab CI/CD": "DevOps/CI-CD",
-    "Azure DevOps": "DevOps/CI-CD",
-    "Docker": "DevOps/Contêineres",
-    "Kubernetes": "DevOps/Contêineres",
-    "Express.js": "Backend/Framework",
-    "SonarQube": "DevOps/Qualidade",
+    "DevOps": "DevOps",
+    "Git": "DevOps",
+    "GitLab": "DevOps",
+    "GitHub": "DevOps",
+    "GitLab CI/CD": "DevOps",
+    "Azure DevOps": "DevOps",
+    "Docker": "DevOps",
+    "Kubernetes": "DevOps",
+    "SonarQube": "DevOps",
 
-    # Cloud (geral e provedores)
-    "Cloud Computing": "Cloud/Conceitos",
-    "AWS": "Cloud/AWS",
-    "Amazon EC2": "Cloud/AWS",
-    "Amazon EKS": "Cloud/AWS",
-    "Amazon ECR": "Cloud/AWS",
-    "Amazon CloudWatch": "Cloud/AWS",
-    "Amazon Athena": "Cloud/AWS",
-    "AWS IAM": "Cloud/AWS",
-    "AWS WAF": "Cloud/AWS",
-    "AWS Shield": "Cloud/AWS",
-    "AWS Firewall": "Cloud/AWS",
-    "AWS DMS": "Cloud/AWS",
-    "Azure": "Cloud/Azure",
-    "Azure AD": "Cloud/Azure",
-    "Azure AD Connect": "Cloud/Azure",
-    "Azure AI Search": "Cloud/Azure",
-    "Azure OpenAI": "Cloud/Azure",
-    "Azure Operator Nexus": "Cloud/Azure",
-    "Microsoft Purview": "Cloud/Azure",
-    "Google Cloud Platform": "Cloud/GCP",
-    "Google Cloud Storage": "Cloud/GCP",
-    "gcloud CLI": "Cloud/GCP",
+    # Cloud
+    "Cloud Computing": "Cloud",
+    "AWS": "Cloud",
+    "Amazon EC2": "Cloud",
+    "Amazon EKS": "Cloud",
+    "Amazon ECR": "Cloud",
+    "Amazon CloudWatch": "Cloud",
+    "Amazon Athena": "Cloud",
+    "AWS IAM": "Cloud",
+    "AWS WAF": "Cloud",
+    "AWS Shield": "Cloud",
+    "AWS Firewall": "Cloud",
+    "AWS DMS": "Cloud",
+    "Azure": "Cloud",
+    "Azure AD": "Cloud",
+    "Azure AD Connect": "Cloud",
+    "Azure AI Search": "Cloud",
+    "Azure OpenAI": "Cloud",
+    "Azure Operator Nexus": "Cloud",
+    "Microsoft Purview": "Cloud",
+    "Google Cloud Platform": "Cloud",
+    "Google Cloud Storage": "Cloud",
+    "gcloud CLI": "Cloud",
 
     # Segurança da Informação / AppSec / Identidade
-    "Cibersegurança": "Segurança/InfoSec",
-    "Segurança da Informação": "Segurança/InfoSec",
-    "Gestão de Vulnerabilidades": "Segurança/InfoSec",
-    "Scanner de Vulnerabilidade": "Segurança/InfoSec",
-    "SIEM": "Segurança/InfoSec",
-    "Centro de Operações de Segurança": "Segurança/InfoSec",
-    "XDR": "Segurança/Endpoint",
-    "Endpoint Detection and Response": "Segurança/Endpoint",
-    "Endpoint Security": "Segurança/Endpoint",
-    "SAST": "Segurança/AppSec",
-    "DAST": "Segurança/AppSec",
-    "OWASP": "Segurança/AppSec",
-    "MITRE ATT&CK": "Segurança/Referenciais",
-    "NIST": "Segurança/Referenciais",
-    "CIS Controls": "Segurança/Referenciais",
-    "BSIMM": "Segurança/Referenciais",
-    "OpenSAMM": "Segurança/Referenciais",
-    "PCI DSS": "Segurança/Compliance",
-    "ISO": "Segurança/Normas",
-    "ISO 27000": "Segurança/Normas",
-    "ISO 27001": "Segurança/Normas",
-    "ISO 27002": "Segurança/Normas",
-    "ISO 27701": "Segurança/Normas",
-    "Lei Geral de Proteção de Dados Pessoais": "Segurança/Privacidade",
-    "Regulamento Geral sobre a Proteção de Dados": "Segurança/Privacidade",
-    "ANPD": "Segurança/Privacidade",
-    "Proteção de Dados": "Segurança/Privacidade",
-    "Pseudonimização": "Segurança/Privacidade",
-    "Mascaramento de Dados": "Segurança/Privacidade",
-    "Registro de Operações de Tratamento de Dados Pessoais": "Segurança/Privacidade",
-    "OneTrust": "Segurança/Privacidade",
-    "Microsoft Defender for Endpoint": "Segurança/Endpoint",
-    "CrowdStrike": "Segurança/Endpoint",
-    "Sophos": "Segurança/Endpoint",
-    "CyberArk": "Segurança/Identidade",
-    "Privileged Access Management": "Segurança/Identidade",
-    "Single Sign-On": "Segurança/Identidade",
-    "OAuth 2.0": "Segurança/Identidade",
-    "OIDC": "Segurança/Identidade",
-    "OpenID": "Segurança/Identidade",
-    "SAML": "Segurança/Identidade",
-    "SSL": "Segurança/AppSec",
-    "Transport Layer Security": "Segurança/AppSec",
-    "Web Application Firewall": "Segurança/AppSec",
-    "Burp Suite": "Segurança/AppSec",
-    "REST Assured": "Segurança/Testes",
-    "SQLMAP": "Segurança/Testes",
-    "Pentest": "Segurança/Testes",
-    "Brute Force": "Segurança/Conceitos",
-    "Hydra Launcher": "Segurança/Testes",
-    "URL filtering": "Segurança/Rede",
-    "ZTNA": "Segurança/Rede",
+    "Cibersegurança": "Segurança",
+    "Segurança da Informação": "Segurança",
+    "Gestão de Vulnerabilidades": "Segurança",
+    "Scanner de Vulnerabilidade": "Segurança",
+    "SIEM": "Segurança",
+    "Centro de Operações de Segurança": "Segurança",
+    "XDR": "Segurança",
+    "Endpoint Detection and Response": "Segurança",
+    "Endpoint Security": "Segurança",
+    "SAST": "Segurança",
+    "DAST": "Segurança",
+    "OWASP": "Segurança",
+    "MITRE ATT&CK": "Segurança",
+    "NIST": "Segurança",
+    "CIS Controls": "Segurança",
+    "BSIMM": "Segurança",
+    "OpenSAMM": "Segurança",
+    "PCI DSS": "Segurança",
+    "ISO": "Segurança",
+    "ISO 27000": "Segurança",
+    "ISO 27001": "Segurança",
+    "ISO 27002": "Segurança",
+    "ISO 27701": "Segurança",
+    "Lei Geral de Proteção de Dados Pessoais": "Segurança",
+    "Regulamento Geral sobre a Proteção de Dados": "Segurança",
+    "ANPD": "Segurança",
+    "Proteção de Dados": "Segurança",
+    "Pseudonimização": "Segurança",
+    "Mascaramento de Dados": "Segurança",
+    "Registro de Operações de Tratamento de Dados Pessoais": "Segurança",
+    "OneTrust": "Segurança",
+    "Microsoft Defender for Endpoint": "Segurança",
+    "CrowdStrike": "Segurança",
+    "Sophos": "Segurança",
+    "CyberArk": "Segurança",
+    "Privileged Access Management": "Segurança",
+    "Single Sign-On": "Segurança",
+    "OAuth 2.0": "Segurança",
+    "OIDC": "Segurança",
+    "OpenID": "Segurança",
+    "SAML": "Segurança",
+    "SSL": "Segurança",
+    "Transport Layer Security": "Segurança",
+    "Web Application Firewall": "Segurança",
+    "Burp Suite": "Segurança",
+    "REST Assured": "Segurança",
+    "SQLMAP": "Segurança",
+    "Pentest": "Segurança",
+    "Brute Force": "Segurança",
+    "Hydra Launcher": "Segurança",
+    "URL filtering": "Segurança",
+    "ZTNA": "Segurança",
 
-    # Redes e Protocolos
-    "Redes": "Redes/Conceitos",
-    "Protocolos de Rede": "Redes/Conceitos",
-    "Protocolos de Segurança": "Redes/Conceitos",
-    "Roteamento": "Redes/Conceitos",
-    "Topologia de Rede": "Redes/Conceitos",
-    "Equipamentos de Rede": "Redes/Conceitos",
-    "IP Address": "Redes/Protocolos",
-    "TCP/IP": "Redes/Protocolos",
-    "IEEE 802.11": "Redes/Protocolos",
-    "DNS": "Redes/Protocolos",
-    "DHCP": "Redes/Protocolos",
-    "IMAP": "Redes/Protocolos",
-    "SMTP": "Redes/Protocolos",
-    "SNMP": "Redes/Protocolos",
-    "IPsec": "Redes/Protocolos",
-    "QoS": "Redes/Protocolos",
-    "Quality of Service": "Redes/Protocolos",
-    "LAN": "Redes/Protocolos",
-    "VLAN": "Redes/Protocolos",
-    "WAN": "Redes/Protocolos",
-    "Wireless Local Area Network": "Redes/Protocolos",
-    "LACP": "Redes/Protocolos",
-    "L2VPN": "Redes/Protocolos",
-    "HSRP": "Redes/Protocolos",
-    "OSPF": "Redes/Roteamento",
-    "BGP": "Redes/Roteamento",
-    "MPLS": "Redes/Infraestrutura",
-    "PPPoe": "Redes/Protocolos",
-    "VRF": "Redes/Infraestrutura",
-    "VPN": "Redes/Segurança",
-    "Telefonia IP": "Redes/Telefonia",
-    "VoIP": "Redes/Telefonia",
-    "Wi-Fi": "Redes/Sem Fio",
-    "Wireless Local Area Network": "Redes/Sem Fio",
-    "Wide Area Network": "Redes/Protocolos",
-    "Fibra Óptica": "Redes/Infraestrutura",
-    "GPON": "Redes/Infraestrutura",
-    "Terminal de Linha Óptica": "Redes/Infraestrutura",
-    "Terminal de Rede Óptica": "Redes/Infraestrutura",
-    "Transceptor": "Redes/Infraestrutura",
-    "Circuito de Dados": "Redes/Infraestrutura",
-    "Redundância": "Redes/Infraestrutura",
-    "Redundância de Rede": "Redes/Infraestrutura",
-    "Switch": "Redes/Dispositivos",
-    "Rastreamento de Atividades": "Observabilidade/Tracing",
-    "Tracing": "Observabilidade/Tracing",
-    "Trace": "Observabilidade/Tracing",
-    "NOC": "Redes/Operações",
-    "Zabbix": "Observabilidade/Monitoramento",
-    "Nagios": "Observabilidade/Monitoramento",
-    "Paessler PRTG": "Observabilidade/Monitoramento",
-    "SolarWinds": "Observabilidade/Monitoramento",
+    # Redes
+    "Redes": "Redes",
+    "Protocolos de Rede": "Redes",
+    "Protocolos de Segurança": "Redes",
+    "Roteamento": "Redes",
+    "Topologia de Rede": "Redes",
+    "Equipamentos de Rede": "Redes",
+    "IP Address": "Redes",
+    "TCP/IP": "Redes",
+    "IEEE 802.11": "Redes",
+    "DNS": "Redes",
+    "DHCP": "Redes",
+    "IMAP": "Redes",
+    "SMTP": "Redes",
+    "SNMP": "Redes",
+    "IPsec": "Redes",
+    "QoS": "Redes",
+    "Quality of Service": "Redes",
+    "LAN": "Redes",
+    "VLAN": "Redes",
+    "WAN": "Redes",
+    "Wireless Local Area Network": "Redes",
+    "LACP": "Redes",
+    "L2VPN": "Redes",
+    "HSRP": "Redes",
+    "OSPF": "Redes",
+    "BGP": "Redes",
+    "MPLS": "Redes",
+    "PPPoe": "Redes",
+    "VRF": "Redes",
+    "VPN": "Redes",
+    "Telefonia IP": "Redes",
+    "VoIP": "Redes",
+    "Wi-Fi": "Redes",
+    "Wireless Local Area Network": "Redes",
+    "Wide Area Network": "Redes",
+    "Fibra Óptica": "Redes",
+    "GPON": "Redes",
+    "Terminal de Linha Óptica": "Redes",
+    "Terminal de Rede Óptica": "Redes",
+    "Transceptor": "Redes",
+    "Circuito de Dados": "Redes",
+    "Redundância": "Redes",
+    "Redundância de Rede": "Redes",
+    "Switch": "Redes",
+
+    # Observabilidade
+    "Registro Estruturado": "Observabilidade",
+    "Rastreamento de Atividades": "Observabilidade",
+    "Tracing": "Observabilidade",
+    "Trace": "Observabilidade",
+    "NOC": "Redes",
+    "Zabbix": "Observabilidade",
+    "Nagios": "Observabilidade",
+    "Paessler PRTG": "Observabilidade",
+    "SolarWinds": "Observabilidade",
 
     # Infraestrutura / Sistemas / Virtualização
-    "Hyper-V": "Infra/Virtualização",
-    "Virtualização": "Infra/Virtualização",
-    "Máquina Virtual": "Infra/Virtualização",
-    "Virtual Private Cloud": "Infra/Redes (Cloud)",
-    "Servidor de Arquivos": "Infra/Servidores",
-    "Servidor de Arquivos Samba": "Infra/Servidores",
-    "Remote Desktop Services": "Infra/Acesso Remoto",
-    "TeamViewer": "Infra/Acesso Remoto",
-    "AnyDesk": "Infra/Acesso Remoto",
-    "pfSense": "Infra/Firewall",
-    "Mikrotik": "Infra/Rede",
-    "Cisco": "Infra/Rede",
-    "Juniper Networks": "Infra/Rede",
-    "Cisco Meraki": "Infra/Rede",
-    "UniFi": "Infra/Rede",
-    "VeloCloud": "Infra/Rede",
+    "Hyper-V": "Infraestrutura",
+    "Virtualização": "Infraestrutura",
+    "Máquina Virtual": "Infraestrutura",
+    "Virtual Private Cloud": "Infraestrutura",
+    "Servidor de Arquivos": "Infraestrutura",
+    "Servidor de Arquivos Samba": "Infraestrutura",
+    "Remote Desktop Services": "Infraestrutura",
+    "TeamViewer": "Infraestrutura",
+    "AnyDesk": "Infraestrutura",
+    "pfSense": "Infraestrutura",
+    "Mikrotik": "Infraestrutura",
+    "Cisco": "Infraestrutura",
+    "Juniper Networks": "Infraestrutura",
+    "Cisco Meraki": "Infraestrutura",
+    "UniFi": "Infraestrutura",
+    "VeloCloud": "Infraestrutura",
+    "TeamViewer": "Infraestrutura",
+    "AnyDesk": "Infraestrutura",
     "Windows": "Sistemas Operacionais",
     "MacOS": "Sistemas Operacionais",
 
-    # Microsoft 365 / Produtividade
-    "Microsoft 365": "Produtividade/Microsoft 365",
-    "Microsoft Teams": "Produtividade/Microsoft 365",
-    "Microsoft Outlook": "Produtividade/Microsoft 365",
-    "Microsoft SharePoint": "Produtividade/Microsoft 365",
-    "Microsoft OneDrive": "Produtividade/Microsoft 365",
-    "Microsoft Planner": "Produtividade/Microsoft 365",
-    "Microsoft To Do": "Produtividade/Microsoft 365",
-    "Microsoft Sway": "Produtividade/Microsoft 365",
-    "Microsoft Loop": "Produtividade/Microsoft 365",
-    "Microsoft Clipchamp": "Produtividade/Microsoft 365",
-    "Microsoft Power Apps": "Produtividade/Power Platform",
-    "Microsoft Power Automate": "Produtividade/Power Platform",
-    "Microsoft Power Platform": "Produtividade/Power Platform",
+    # Produtividade
+    "Microsoft 365": "Produtividade",
+    "Microsoft Teams": "Produtividade",
+    "Microsoft Outlook": "Produtividade",
+    "Microsoft SharePoint": "Produtividade",
+    "Microsoft OneDrive": "Produtividade",
+    "Microsoft Planner": "Produtividade",
+    "Microsoft To Do": "Produtividade",
+    "Microsoft Sway": "Produtividade",
+    "Microsoft Loop": "Produtividade",
+    "Microsoft Clipchamp": "Produtividade",
+    "Microsoft Power Apps": "Produtividade",
+    "Microsoft Power Automate": "Produtividade",
+    "Microsoft Power Platform": "Produtividade",
+    "Google Forms": "Produtividade",
 
-    # Ferramentas de desenvolvimento/IDE/Qualidade
-    "Virtual Studio Code": "Dev/Ferramentas",
-    "Eclipse IDE": "Dev/Ferramentas",
-    "Intellij IDEA": "Dev/Ferramentas",
-    "Apache JMeter": "Dev/Testes",
-    "Apache Maven": "Dev/Build",
-    "JUnit": "Dev/Testes",
-    "Linter": "Dev/Qualidade",
+    # Desenvolvimento/IDE/Qualidade
+    "Virtual Studio Code": "Desenvolvimento",
+    "Eclipse IDE": "Desenvolvimento",
+    "Intellij IDEA": "Desenvolvimento",
+    "Apache JMeter": "Desenvolvimento",
+    "Apache Maven": "Desenvolvimento",
+    "JUnit": "Desenvolvimento",
+    "Linter": "Desenvolvimento",
 
-    # Arquitetura/Práticas/Metodologias/Gestão
-    "Arquitetura de Sistemas": "Arquitetura/Conceitos",
-    "Arquitetura Distribuída": "Arquitetura/Conceitos",
-    "Arquitetura de Software": "Arquitetura/Conceitos",
-    "Padrões de Arquitetura": "Arquitetura/Conceitos",
-    "Padrões Arquiteturais": "Arquitetura/Conceitos",
-    "Microsserviços": "Arquitetura/Estilos",
-    "Domain-Driven Design": "Arquitetura/Práticas",
-    "Programação Orientada a Objetos": "Arquitetura/Práticas",
-    "Programação Funcional": "Arquitetura/Práticas",
-    "Injeção de Dependência": "Arquitetura/Práticas",
-    "Back-End": "Arquitetura/Camadas",
-    "Front-End": "Arquitetura/Camadas",
-    "Container": "Arquitetura/Execução",
-    "Política como Código": "Governança/Políticas",
-    "Política de Segurança de TI": "Governança/Políticas",
-    "Gestão de Riscos": "Governança/Riscos",
-    "Análise De Riscos": "Governança/Riscos",
-    "Matriz de Risco Corporativa": "Governança/Riscos",
-    "Gestão de Mudanças": "Governança/Processos",
-    "Procedimentos Operacionais Padrão": "Governança/Processos",
-    "Governança de Dados": "Governança/Dados",
-    "COBIT": "Governança/Frameworks",
-    "ITIL": "Governança/Frameworks",
-    "ITSM": "Governança/Processos",
-    "ITOM": "Governança/Processos",
-    "Lean IT": "Governança/Melhoria Contínua",
-    "LeSS": "Governança/Metodologias Ágeis",
-    "TOGAF": "Governança/Arquitetura",
-    "PMBOK": "Gestão/Projetos",
-    "PRINCE2": "Gestão/Projetos",
-    "Gerenciamento de Projetos": "Gestão/Projetos",
-    "Project Management Institute": "Gestão/Projetos",
-    "Microsoft Project": "Gestão/Projetos",
-    "Microsoft Project Server": "Gestão/Projetos",
+    # Arquitetura/Práticas
+    "Arquitetura de Sistemas": "Arquitetura",
+    "Arquitetura Distribuída": "Arquitetura",
+    "Arquitetura de Software": "Arquitetura",
+    "Padrões de Arquitetura": "Arquitetura",
+    "Padrões Arquiteturais": "Arquitetura",
+    "Microsserviços": "Arquitetura",
+    "Domain-Driven Design": "Arquitetura",
+    "Programação Orientada a Objetos": "Arquitetura",
+    "Programação Funcional": "Arquitetura",
+    "Injeção de Dependência": "Arquitetura",
+    "Back-End": "Arquitetura",
+    "Front-End": "Arquitetura",
+    "Container": "Arquitetura",
 
-    # Identidade/Microsoft/Intune/MDM
-    "Microsoft Intune": "Endpoint/MDM",
-    "MDM": "Endpoint/MDM",
-    "Workspace ONE": "Endpoint/MDM",
-    "Active Directory": "Identidade/AD",
-    "Hybrid Azure AD Join": "Identidade/AD",
+    # Gestão/Metodologias
+    "Política como Código": "Governança e Gestão",
+    "Política de Segurança de TI": "Governança e Gestão",
+    "Gestão de Riscos": "Governança e Gestão",
+    "Análise De Riscos": "Governança e Gestão",
+    "Matriz de Risco Corporativa": "Governança e Gestão",
+    "Gestão de Mudanças": "Governança e Gestão",
+    "Procedimentos Operacionais Padrão": "Governança e Gestão",
+    "Governança de Dados": "Governança e Gestão",
+    "COBIT": "Governança e Gestão",
+    "ITIL": "Governança e Gestão",
+    "ITSM": "Governança e Gestão",
+    "ITOM": "Governança e Gestão",
+    "Lean IT": "Governança e Gestão",
+    "LeSS": "Governança e Gestão",
+    "TOGAF": "Governança e Gestão",
+    "PMBOK": "Governança e Gestão",
+    "PRINCE2": "Governança e Gestão",
+    "Gerenciamento de Projetos": "Governança e Gestão",
+    "Project Management Institute": "Governança e Gestão",
+    "Microsoft Project": "Governança e Gestão",
+    "Microsoft Project Server": "Governança e Gestão",
+    "Adobe Workfront": "Governança e Gestão",
+    "ServiceNow": "Governança e Gestão",
+    "ServiceNow GRC": "Governança e Gestão",
+    "RSA Archer": "Governança e Gestão",
+    "MetricStream": "Governança e Gestão",
+
+    # Identidade/Intune/MDM
+    "Microsoft Intune": "Identidade",
+    "MDM": "Identidade",
+    "Workspace ONE": "Identidade",
+    "Active Directory": "Identidade",
+    "Hybrid Azure AD Join": "Identidade",
 
     # Serviços/Aplicações de Negócio
     "ERP": "Aplicações de Negócio",
     "Customer Relationship Management": "Aplicações de Negócio",
-    "Microsoft Exchange": "Infra/Mensageria",
-    "Microsoft Exchange Online": "Infra/Mensageria",
+    "Microsoft Exchange": "Mensageria",
+    "Microsoft Exchange Online": "Mensageria",
     "Sistema SAP": "Aplicações de Negócio",
     "SAP S/4HANA": "Aplicações de Negócio",
     "Sistemas de Gestão de Recursos Humanos": "Aplicações de Negócio",
     "Order Management System": "Aplicações de Negócio",
     "WMS": "Aplicações de Negócio",
-    "Adobe Workfront": "Gestão/Projetos",
-    "ServiceNow": "ITSM",
-    "ServiceNow GRC": "GRC",
-    "RSA Archer": "GRC",
-    "MetricStream": "GRC",
 
     # Privacidade/Regulação/Leis
-    "Marco Civil da Internet": "Compliance/Leis",
-    "Lei Sarbanes-Oxley": "Compliance/Leis",
-    "Termo de Uso de Dados": "Compliance/Privacidade",
+    "Marco Civil da Internet": "Compliance",
+    "Lei Sarbanes-Oxley": "Compliance",
+    "Termo de Uso de Dados": "Compliance",
 
     # AI/ML/Data Science
     "Inteligência Artificial": "IA/ML",
@@ -437,52 +481,48 @@ CATEGORIA_POR_HABILIDADE = {
     "XGBoost": "IA/ML",
 
     # Qualidade/Testes/Automação
-    "Automação de Teste": "Qualidade/Testes",
-    "Teste Unitário": "Qualidade/Testes",
-    "Teste de Unidade": "Qualidade/Testes",
-    "Teste de Caixa-Branca": "Qualidade/Testes",
-    "Teste de Caixa-Preta": "Qualidade/Testes",
-    "Teste de Integração": "Qualidade/Testes",
-    "Relatório Técnico": "Qualidade/Documentação",
+    "Automação de Teste": "Qualidade",
+    "Teste Unitário": "Qualidade",
+    "Teste de Unidade": "Qualidade",
+    "Teste de Caixa-Branca": "Qualidade",
+    "Teste de Caixa-Preta": "Qualidade",
+    "Teste de Integração": "Qualidade",
+    "Relatório Técnico": "Qualidade",
 
-    # Ferramentas/Outros
+    # Ferramentas
     "Google Web Designer": "Ferramentas",
     "ManageEngine": "Ferramentas",
-    "GLPi": "Ferramentas/ITSM",
-    "Microsoft SCCM": "Ferramentas/Endpoint",
-    "TeamViewer": "Infra/Acesso Remoto",
-    "AnyDesk": "Infra/Acesso Remoto",
-    "gcloud CLI": "Cloud/GCP",
-    "Google Forms": "Produtividade/Formulários",
-
+    "GLPi": "Ferramentas",
+    "Microsoft SCCM": "Ferramentas",
+    
     # Conceitos diversos
-    "Aplicação Web": "Conceitos/Aplicações",
-    "Aplicação Mobile": "Conceitos/Aplicações",
-    "Aplicação Desktop": "Conceitos/Aplicações",
-    "Controle de Versão de Software": "Conceitos/Dev",
-    "Versionamento": "Conceitos/Dev",
-    "Visualização de Dados": "Conceitos/Dados",
-    "Formatação de Computadores": "Conceitos/Suporte",
-    "Frameworks de Persistência": "Conceitos/Desenvolvimento",
-    "Segurança de Rede": "Conceitos/Segurança",
-    "Segurança Perimetral": "Conceitos/Segurança",
-    "Gestão de Incidentes": "Conceitos/ITSM",
-    "Suporte Remoto": "Conceitos/Suporte",
-    "Serviços de Integração": "Conceitos/Integração",
-    "Processamento em Lote": "Conceitos/Dados",
-    "Requisições Web": "Conceitos/Web",
-    "Busca Semântica": "Conceitos/IA",
-    "Lógica de Programação": "Conceitos/Programação",
-    "Mapeamento de Dados": "Conceitos/Dados",
-    "Mapeamento de Unidade de Rede": "Conceitos/Rede",
-    "Mapeamento de Processos": "Conceitos/Processos",
-    "Máscara de Rede": "Conceitos/Rede",
-    "Programação Orientada a Objetos": "Arquitetura/Práticas",
-    "Java EE": "Backend/Plataforma",
-    "Modelo OSI": "Redes/Conceitos",
-    "Lean IT": "Governança/Melhoria Contínua",
-    "Hybrid Azure AD Join": "Identidade/AD",
-    "Policy": "Governança/Políticas",
+    "Aplicação Web": "Conceitos",
+    "Aplicação Mobile": "Conceitos",
+    "Aplicação Desktop": "Conceitos",
+    "Controle de Versão de Software": "Conceitos",
+    "Versionamento": "Conceitos",
+    "Visualização de Dados": "Conceitos",
+    "Formatação de Computadores": "Conceitos",
+    "Frameworks de Persistência": "Conceitos",
+    "Segurança de Rede": "Conceitos",
+    "Segurança Perimetral": "Conceitos",
+    "Gestão de Incidentes": "Conceitos",
+    "Suporte Remoto": "Conceitos",
+    "Serviços de Integração": "Conceitos",
+    "Processamento em Lote": "Conceitos",
+    "Requisições Web": "Conceitos",
+    "Busca Semântica": "Conceitos",
+    "Lógica de Programação": "Conceitos",
+    "Mapeamento de Dados": "Conceitos",
+    "Mapeamento de Unidade de Rede": "Conceitos",
+    "Mapeamento de Processos": "Conceitos",
+    "Máscara de Rede": "Conceitos",
+    "Programação Orientada a Objetos": "Arquitetura",
+    "Java EE": "Backend",
+    "Modelo OSI": "Redes",
+    "Lean IT": "Governança e Gestão",
+    "Hybrid Azure AD Join": "Identidade/MDM",
+    "Policy": "Governança e Gestão",
     "SaaS": "Modelos de Entrega",
     "ServiceNow": "ITSM",
     "Order Management System": "Aplicações de Negócio",
@@ -512,18 +552,6 @@ def normalizar_habilidade(habilidade: str, session: Session | None = None) -> st
     habilidade_cap = ' '.join(p.capitalize() for p in habilidade.split())
     return habilidade_cap
 
-# Mapeia uma habilidade normalizada para sua categoria (a partir do dicionário criado acima)
-DEFAULT_CATEGORIA = "Outros"
-
-def obter_categoria(habilidade_normalizada: str) -> str:
-    return CATEGORIA_POR_HABILIDADE.get(habilidade_normalizada, DEFAULT_CATEGORIA)
-
-# Mapeia uma habilidade normalizada para sua categoria (a partir do dicionário criado acima)
-DEFAULT_CATEGORIA = "Outros"
-
-def obter_categoria(habilidade_normalizada: str) -> str:
-    return CATEGORIA_POR_HABILIDADE.get(habilidade_normalizada, DEFAULT_CATEGORIA)
-
 # Padroniza a descrição da vaga para facilitar a extração
 def padronizar_descricao(descricao: str) -> str:
     descricao = unicodedata.normalize('NFD', descricao) # normaliza acentuação
@@ -542,9 +570,11 @@ def deduplicar(hab: str) -> str:
     return hab
 
 # Extrai habilidades da descrição usando a API do OpenAI
-def extrair_habilidades_descricao(descricao: str, session: Session | None = None) -> List[str]:
+def extrair_habilidades_descricao(descricao: str, session: Session | None = None) -> List[dict]:
     cliente = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) # inicializa o cliente com a chave da API
-    prompt = PROMPT_BASE + descricao # cria o prompt completo
+    categorias_lista = listar_categorias_db(session)
+    categorias_texto = "\n".join(f"- {nome}" for nome in categorias_lista) if categorias_lista else ""
+    prompt = f"{PROMPT_BASE}\n{categorias_texto}\n\nTexto da vaga:\n" + descricao # cria o prompt completo com categorias
     try:
         resposta = cliente.responses.create(
             model="gpt-4.1",
@@ -565,18 +595,39 @@ def extrair_habilidades_descricao(descricao: str, session: Session | None = None
             texto_completo = "\n".join(t for t in blocos_puros if t).strip() # junta blocos de texto
 
         # Extrai habilidades do JSON na resposta
-        habilidades_extraidas: List[str] = []
+        habilidades_extraidas: List[dict] = []  # cada item: {"nome": str, "categoria_sugerida": Optional[str]}
 
         # Função auxiliar para tentar interpretar um segmento como JSON
+        def _validar_categoria_sugerida(cat: str | None) -> str | None:
+            if not cat:
+                return None
+            if not categorias_lista:
+                return None
+            # faz comparação case-insensitive e retorna o nome com a capitalização correta do banco
+            for c in categorias_lista:
+                if c.strip().lower() == str(cat).strip().lower():
+                    return c
+            return None
+
         def tentar_json(segmento: str):
             nonlocal habilidades_extraidas # permite modificar a variável externa
             try:
                 data = json.loads(segmento) # tenta carregar o JSON
                 # Verifica se o JSON contém a chave "habilidades"
                 if isinstance(data, dict) and isinstance(data.get("habilidades"), list):
-                    habilidades_extraidas = [
-                        normalizar_habilidade(h, session=session) for h in data["habilidades"]
-                    ]
+                    coletadas: list[dict] = []
+                    for item in data["habilidades"]:
+                        if isinstance(item, str):
+                            nome_norm = normalizar_habilidade(item, session=session)
+                            coletadas.append({"nome": nome_norm, "categoria_sugerida": None})
+                        elif isinstance(item, dict):
+                            nome_bruto = item.get("nome") or item.get("habilidade") or item.get("skill")
+                            cat_bruta = item.get("categoria") or item.get("categoria_sugerida")
+                            if isinstance(nome_bruto, str) and nome_bruto.strip():
+                                nome_norm = normalizar_habilidade(nome_bruto, session=session)
+                                cat_ok = _validar_categoria_sugerida(cat_bruta)
+                                coletadas.append({"nome": nome_norm, "categoria_sugerida": cat_ok})
+                    habilidades_extraidas = coletadas
             except json.JSONDecodeError:
                 pass
 
@@ -590,18 +641,19 @@ def extrair_habilidades_descricao(descricao: str, session: Session | None = None
             if achado:
                 tentar_json(achado.group(0))
 
-        finais: List[str] = [] # lista final de habilidades deduplicadas
+        finais: List[dict] = [] # lista final deduplicada de objetos
         vistos = set() # conjunto para rastrear habilidades já vistas
 
         # Deduplica e filtra habilidades extraídas
-        for hab in habilidades_extraidas:
-            chave = deduplicar(hab)
-            # ignora marcas, periféricos e palavras genéricas
-            if chave not in vistos:
+        for item in habilidades_extraidas:
+            nome = item.get("nome") if isinstance(item, dict) else str(item)
+            cat_sug = item.get("categoria_sugerida") if isinstance(item, dict) else None
+            chave = deduplicar(nome)
+            if chave not in vistos and nome:
                 vistos.add(chave)
-                finais.append(hab)
+                finais.append({"nome": nome, "categoria_sugerida": _validar_categoria_sugerida(cat_sug)})
         return finais
-    
+
     # Em caso de erro, retorna lista vazia
     except Exception as exc:
         return []
