@@ -45,3 +45,16 @@ async def remover_relacao_vaga_habilidade_endpoint(
     if not ok:
         raise HTTPException(status_code=404, detail="Relação não encontrada")
     return {"status": "removido"}
+
+# Excluir vaga (admin) decrementando frequências e removendo relação carreira-habilidade quando chegar a 0
+@vagaRouter.delete("/{vaga_id}")
+async def excluir_vaga_endpoint(
+    vaga_id: int,
+    sessao: Session = Depends(pegar_sessao),
+    admin=Depends(requer_admin)
+):
+    from app.services.vaga import excluir_vaga_decrementando
+    ok = excluir_vaga_decrementando(sessao, vaga_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    return {"status": "excluida", "vaga_id": vaga_id}
