@@ -9,9 +9,23 @@ exclude_unset: gera um dicionário para atualizar apenas os campos que foram inf
 
 # ======================= CRUD =======================
 
-# CREATE / POST - Cria uma nova relação entre habilidade e carreira
+# CREATE / POST - Cria ou incrementa uma relação entre habilidade e carreira
 def criar_carreira_habilidade(session, carreira_habilidade_data: CarreiraHabilidadeBase) -> CarreiraHabilidadeOut:
-    nova = CarreiraHabilidade(**carreira_habilidade_data.model_dump())
+    existente = session.query(CarreiraHabilidade).filter_by(
+        carreira_id=carreira_habilidade_data.carreira_id,
+        habilidade_id=carreira_habilidade_data.habilidade_id
+    ).first()
+    if existente:
+        # incrementa frequência automaticamente
+        existente.frequencia = (existente.frequencia or 0) + 1
+        session.commit()
+        session.refresh(existente)
+        return CarreiraHabilidadeOut.model_validate(existente)
+    nova = CarreiraHabilidade(
+        carreira_id=carreira_habilidade_data.carreira_id,
+        habilidade_id=carreira_habilidade_data.habilidade_id,
+        frequencia=1
+    )
     session.add(nova)
     session.commit()
     session.refresh(nova)
