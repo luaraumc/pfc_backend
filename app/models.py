@@ -41,8 +41,14 @@ class Habilidade(Base):
 	__tablename__ = 'habilidade'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), unique=True, nullable=False)
-	categoria = Column(String(120), nullable=False)
+	categoria_id = Column(Integer, ForeignKey('categoria.id', ondelete='RESTRICT'), nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+	categoria_rel = relationship('Categoria', backref='habilidades')
+
+	# leitura do nome da categoria para mostrar no front
+	@property
+	def categoria(self) -> str | None:
+		return getattr(self.categoria_rel, 'nome', None)
 
 # Modelo da tabela "conhecimento"
 class Conhecimento(Base):
@@ -51,12 +57,19 @@ class Conhecimento(Base):
 	nome = Column(String(300), unique=True, nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
-# Tabela de padrões para normalização de habilidades
+# Modelo da tabela "normalizacao"
 class Normalizacao(Base):
 	__tablename__ = 'normalizacao'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(200), unique=True, nullable=False)  # regex/padrão (ex.: r"^node(js)?$")
 	nome_padronizado = Column(String(150), nullable=False)   # valor canônico (ex.: "Node.js")
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+
+# Modelo da tabela "categoria"
+class Categoria(Base):
+	__tablename__ = 'categoria'
+	id = Column(Integer, primary_key=True, index=True)
+	nome = Column(String(150), unique=True, nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
 # Modelo da tabela "compatibilidade"
