@@ -164,13 +164,15 @@ def extrair_habilidades_descricao(descricao: str, session: Session | None = None
         def _validar_categoria_sugerida(cat: str | None) -> str | None:
             if not cat:
                 return None
+            # Se não houver categorias cadastradas no banco, preserve o texto sugerido pelo modelo
             if not categorias_lista:
-                return None
+                return str(cat).strip() or None
             # faz comparação case-insensitive e retorna o nome com a capitalização correta do banco
             for c in categorias_lista:
                 if c.strip().lower() == str(cat).strip().lower():
                     return c
-            return None
+            # Sem match: preserve texto sugerido para exibição/edição
+            return str(cat).strip() or None
 
         def tentar_json(segmento: str):
             nonlocal habilidades_extraidas # permite modificar a variável externa
