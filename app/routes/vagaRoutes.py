@@ -56,8 +56,8 @@ async def criar_vaga_basico_endpoint(
             raise HTTPException(status_code=409, detail="Já existe uma vaga com a mesma descrição.")
         raise
 
-# Pré-visualização de habilidades extraídas (array de strings)
-@vagaRouter.get("/{vaga_id}/preview-habilidades", response_model=list[str])
+# Pré-visualização de habilidades extraídas (objetos com sugestão de categoria)
+@vagaRouter.get("/{vaga_id}/preview-habilidades", response_model=list[dict])
 async def preview_habilidades_endpoint(
     vaga_id: int,
     sessao: Session = Depends(pegar_sessao),
