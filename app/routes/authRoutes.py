@@ -59,19 +59,6 @@ async def login(login_schema: LoginSchema, session: Session = Depends(pegar_sess
             "refresh_token": refresh_token,
             "token_type": "Bearer"
             }
-    
-# Login de usuário para o fastapi docs
-@authRouter.post("/login-form")
-async def login_form(dados_formulario: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(pegar_sessao)):
-    usuario=autenticar_usuario(dados_formulario.username, dados_formulario.password, session) # autentica o usuário
-    if not usuario:
-        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos")
-    else:
-        access_token = criar_token(usuario.id) # cria o token de acesso
-        return {
-            "access_token": access_token,
-            "token_type": "Bearer"
-            }
 
 # Usar o refresh token para obter um novo access token - AUTENTICADA
 @authRouter.get("/refresh")
