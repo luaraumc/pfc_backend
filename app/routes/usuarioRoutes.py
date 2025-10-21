@@ -5,11 +5,13 @@ from app.services.logExclusao import registrar_exclusao_usuario # serviço para 
 from app.services.usuarioHabilidade import criar_usuario_habilidade, listar_habilidades_usuario, remover_usuario_habilidade # serviços para manipular habilidades do usuário
 from app.routes.authRoutes import enviar_email, _gerar_codigo # enviar email e gerar código de verificação
 from app.models import UsuarioHabilidade, CodigoAutenticacao # modelo de tabela definido no arquivo models.py
+from app.models import CarreiraHabilidade, Habilidade # para consultar habilidades da carreira
 from sqlalchemy.orm import Session# cria sessões com o banco de dados
 from app.models import Usuario # modelo de tabela definido no arquivo models.py
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from app.config import bcrypt_context # configuração de criptografia
 from app.schemas import UsuarioOut, AtualizarUsuarioSchema, UsuarioHabilidadeBase, UsuarioHabilidadeOut, ConfirmarNovaSenhaSchema, ConfirmarCodigoSchema, SolicitarCodigoSchema # schemas para validação de dados
+from app.services.compatibilidade import top_n_carreiras_por_usuario, calcular_compatibilidade_usuario_carreira
 
 # Inicializa o router
 usuarioRouter = APIRouter(prefix="/usuario", tags=["usuario"])
@@ -138,7 +140,82 @@ async def listar_habilidades_usuario_route(
     return listar_habilidades_usuario(session, usuario_id)
 
 # Listar habilidades faltantes para o usuário - AUTENTICADA
-############### FAZER APÓS CRIAR COMPARAÇÃO ###############
+@usuarioRouter.get("/{usuario_id}/habilidades-faltantes", response_model=list[dict])
+async def listar_habilidades_faltantes_route(
+    usuario_id: int,
+    usuario: Usuario = Depends(verificar_token),
+    session: Session = Depends(pegar_sessao),
+):
+    usuario_db = buscar_usuario_por_id(session, usuario_id)
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    if not usuario_db.carreira_id:
+        raise HTTPException(status_code=400, detail="Usuário não possui carreira definida")
+
+    # Habilidades que o usuário já possui
+    habs_usuario = session.query(UsuarioHabilidade.habilidade_id).filter(UsuarioHabilidade.usuario_id == usuario_id).all()
+    ids_usuario = {hid for (hid,) in habs_usuario}
+
+    # Habilidades requeridas pela carreira do usuário (com frequência)
+    rows = (
+        session.query(Habilidade.id, Habilidade.nome, CarreiraHabilidade.frequencia)
+        .join(CarreiraHabilidade, CarreiraHabilidade.habilidade_id == Habilidade.id)
+        .filter(CarreiraHabilidade.carreira_id == usuario_db.carreira_id)
+        .all()
+    )
+
+    faltantes = [
+        {
+            "id": hid,
+            "nome": nome,
+            "frequencia": int(freq) if freq is not None else 0,
+        }
+        for (hid, nome, freq) in rows
+        if hid not in ids_usuario
+    ]
+
+    faltantes.sort(key=lambda x: x["frequencia"], reverse=True)
+    return faltantes
+
+# Todas as carreiras por compatibilidade (ponderada por frequência) - AUTENTICADA
+@usuarioRouter.get("/{usuario_id}/compatibilidade/top", response_model=list[dict])
+async def top_carreiras_usuario_route(
+    usuario_id: int,
+    usuario: Usuario = Depends(verificar_token),
+    session: Session = Depends(pegar_sessao),
+):
+    usuario_db = buscar_usuario_por_id(session, usuario_id)
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    resultados = top_n_carreiras_por_usuario(
+        session,
+        usuario_id,
+        n=None,
+        min_freq=None,
+        coverage_ratio=0.8,
+    )
+    return resultados
+
+# Compatibilidade do usuário para uma carreira específica - AUTENTICADA
+@usuarioRouter.get("/{usuario_id}/compatibilidade/carreira/{carreira_id}", response_model=dict)
+async def compatibilidade_usuario_carreira_route(
+    usuario_id: int,
+    carreira_id: int,
+    usuario: Usuario = Depends(verificar_token),
+    session: Session = Depends(pegar_sessao),
+):
+    usuario_db = buscar_usuario_por_id(session, usuario_id)
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    resultado = calcular_compatibilidade_usuario_carreira(
+        session,
+        usuario_id,
+        carreira_id,
+        min_freq=None,
+        coverage_ratio=0.8,
+    )
+    return resultado
 
 # Adicionar habilidade ao usuário - AUTENTICADA
 @usuarioRouter.post("/{usuario_id}/adicionar-habilidade/{habilidade_id}", response_model=UsuarioHabilidadeOut)
