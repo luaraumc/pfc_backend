@@ -27,7 +27,8 @@ async def criar_vaga_endpoint(
         raise
 
 # Pré-visualização de habilidades extraídas - AUTENTICADA
-@vagaRouter.get("/{vaga_id}/preview-habilidades", response_model=list[str])
+# Retorna lista de objetos com chaves: nome, habilidade_id, categoria_sugerida, categoria_id, categoria_nome
+@vagaRouter.get("/{vaga_id}/preview-habilidades", response_model=list[dict])
 async def preview_habilidades_endpoint(
     vaga_id: int,
     sessao: Session = Depends(pegar_sessao),

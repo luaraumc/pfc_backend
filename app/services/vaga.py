@@ -37,24 +37,48 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> VagaOut:
     })
 
 # PREVIEW - Extrai habilidades da descrição da vaga sem salvar
-def extrair_habilidades_vaga(session: Session, vaga_id: int) -> list[str]:
+def extrair_habilidades_vaga(session: Session, vaga_id: int) -> list[dict]:
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         return []
     # usa a versão atual da extração que aceita sessão e retorna apenas os nomes para o preview
     itens = extrair_habilidades_descricao(vaga.descricao, session=session)
-    nomes = []
+    finais: list[dict] = []
     vistos = set()
     for item in itens:
         nome = item.get("nome") if isinstance(item, dict) else str(item)
+        cat_sug = item.get("categoria_sugerida") if isinstance(item, dict) else None
         chave = deduplicar(nome)
-        if chave not in vistos:
+        if chave not in vistos and nome:
             vistos.add(chave)
-            nomes.append(nome)
-    return nomes
+            # Verifica se a habilidade já existe no banco
+            habilidade_db = session.query(Habilidade).filter(Habilidade.nome.ilike(nome)).first()
+            habilidade_id = habilidade_db.id if habilidade_db else ""
+            # Se existir no banco, preferir a categoria atual do banco
+            if habilidade_db and habilidade_db.categoria_id:
+                categoria_id = habilidade_db.categoria_id
+                categoria_nome = session.query(Categoria.nome).filter(Categoria.id == habilidade_db.categoria_id).scalar() or ""
+            else:
+                # Caso contrário, tenta casar sugestão com categoria existente
+                categoria_id = ""
+                categoria_nome = ""
+                if cat_sug:
+                    cat_db = session.query(Categoria).filter(Categoria.nome.ilike(cat_sug)).first()
+                    if cat_db:
+                        categoria_id = cat_db.id
+                        categoria_nome = cat_db.nome
+            finais.append({
+                "nome": nome,
+                "habilidade_id": habilidade_id,
+                "categoria_sugerida": cat_sug,
+                "categoria_id": categoria_id,
+                "categoria_nome": categoria_nome,
+                "categoria": categoria_nome,
+            })
+    return finais
 
 # CONFIRMAR - Confirma lista final de habilidades para a vaga e associa na carreira
-def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finais: list[str]) -> dict:
+def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finais: list) -> dict:
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         raise ValueError("Vaga não encontrada")
@@ -70,37 +94,76 @@ def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finai
             categoria_por_chave[chave] = cat_sug
 
     # Normaliza e deduplica conforme lógica atual (usando session e deduplicação)
+    # Agora aceitamos objetos com nome, categoria_id e habilidade_id
     vistos = set()
-    finais_norm = []
+    finais_norm: list[dict] = []  # cada item: { nome_norm, categoria_id?, habilidade_id? }
     for h in habilidades_finais:
-        h_norm = normalizar_habilidade(h, session=session)
-        chave = deduplicar(h_norm)
-        if chave not in vistos:
-            vistos.add(chave)
-            finais_norm.append(h_norm)
+        if isinstance(h, dict):
+            nome_raw = h.get("nome") or h.get("name") or ""
+            categoria_id_raw = h.get("categoria_id") or h.get("category_id") or ""
+            habilidade_id_raw = h.get("habilidade_id") or h.get("skill_id") or ""
+        else:
+            nome_raw = str(h)
+            categoria_id_raw = ""
+            habilidade_id_raw = ""
+        nome_norm = normalizar_habilidade(nome_raw, session=session)
+        chave = deduplicar(nome_norm)
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        finais_norm.append({
+            "nome": nome_norm,
+            "categoria_id": categoria_id_raw,
+            "habilidade_id": habilidade_id_raw,
+        })
 
     habilidades_criadas = []
     habilidades_ja_existiam = []
 
-    for nome_padronizado in finais_norm:
-        # Verifica se já existe (case-insensitive)
-        habilidade = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_padronizado)).first()
+    for item in finais_norm:
+        nome_padronizado = item["nome"]
+        categoria_id_informada = item.get("categoria_id")
+        habilidade_id_informada = item.get("habilidade_id")
+
+        habilidade = None
+        if habilidade_id_informada:
+            habilidade = session.query(Habilidade).filter(Habilidade.id == habilidade_id_informada).first()
+        if not habilidade:
+            # Verifica por nome (case-insensitive)
+            habilidade = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_padronizado)).first()
+
         if not habilidade:
             # Usa a categoria sugerida pela IA para esta habilidade; se ausente, "categoria pendente"
             chave = deduplicar(nome_padronizado)
             categoria_sugerida = categoria_por_chave.get(chave)
-            categoria_nome = categoria_sugerida or "categoria pendente"
-            # busca ou cria a categoria pelo nome definido
-            categoria = session.query(Categoria).filter(Categoria.nome.ilike(categoria_nome)).first()
+            categoria = None
+            if categoria_id_informada:
+                categoria = session.query(Categoria).filter(Categoria.id == categoria_id_informada).first()
+            if not categoria and categoria_sugerida:
+                categoria = session.query(Categoria).filter(Categoria.nome.ilike(categoria_sugerida)).first()
             if not categoria:
-                categoria = Categoria(nome=categoria_nome)
-                session.add(categoria)
-                session.flush()
+                # fallback estrito: não criar novas categorias com o nome sugerido; usar/garantir 'categoria pendente'
+                categoria = session.query(Categoria).filter(Categoria.nome.ilike("categoria pendente")).first()
+                if not categoria:
+                    categoria = Categoria(nome="categoria pendente")
+                    session.add(categoria)
+                    session.flush()
             habilidade = Habilidade(nome=nome_padronizado, categoria_id=categoria.id)
             session.add(habilidade)
             session.flush()
             habilidades_criadas.append(nome_padronizado)
         else:
+            # Atualiza nome/categoria se informado
+            if habilidade.nome.lower() != nome_padronizado.lower():
+                conflito = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_padronizado)).first()
+                if conflito and conflito.id != habilidade.id:
+                    raise ValueError(f"Já existe uma habilidade com o nome '{nome_padronizado}'.")
+                habilidade.nome = nome_padronizado
+            # Atualizar categoria se fornecida e existir
+            if categoria_id_informada:
+                categoria_db = session.query(Categoria).filter(Categoria.id == categoria_id_informada).first()
+                if categoria_db:
+                    habilidade.categoria_id = categoria_db.id
             habilidades_ja_existiam.append(nome_padronizado)
 
         # Associa à vaga (se ainda não existe a relação)
