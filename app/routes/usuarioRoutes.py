@@ -3,6 +3,7 @@ from datetime import datetime # para comparar expiração de códigos
 from app.services.usuario import atualizar_usuario, buscar_usuario_por_id, deletar_usuario, atualizar_senha # serviços relacionados ao usuário
 from app.services.logExclusao import registrar_exclusao_usuario # serviço para auditoria de exclusões
 from app.services.usuarioHabilidade import criar_usuario_habilidade, listar_habilidades_usuario, remover_usuario_habilidade # serviços para manipular habilidades do usuário
+from app.services.compatibilidade import compatibilidade_carreiras_por_usuario, calcular_compatibilidade_usuario_carreira # serviços de compatibilidade
 from app.routes.authRoutes import enviar_email, _gerar_codigo # enviar email e gerar código de verificação
 from app.models import UsuarioHabilidade, CodigoAutenticacao # modelo de tabela definido no arquivo models.py
 from app.models import CarreiraHabilidade, Habilidade # para consultar habilidades da carreira
@@ -11,7 +12,6 @@ from app.models import Usuario # modelo de tabela definido no arquivo models.py
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from app.config import bcrypt_context # configuração de criptografia
 from app.schemas import UsuarioOut, AtualizarUsuarioSchema, UsuarioHabilidadeBase, UsuarioHabilidadeOut, ConfirmarNovaSenhaSchema, ConfirmarCodigoSchema, SolicitarCodigoSchema # schemas para validação de dados
-from app.services.compatibilidade import top_n_carreiras_por_usuario, calcular_compatibilidade_usuario_carreira
 
 # Inicializa o router
 usuarioRouter = APIRouter(prefix="/usuario", tags=["usuario"])
@@ -101,7 +101,7 @@ async def deletar_usuario_route(
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     if dados.motivo != "exclusao_conta":
         raise HTTPException(status_code=400, detail="Motivo inválido para exclusão")
-
+    # Busca último código válido para motivos de exclusão de conta
     rec = (
         session.query(CodigoAutenticacao)
         .filter(CodigoAutenticacao.usuario_id == usuario_db.id, CodigoAutenticacao.motivo == "exclusao_conta") # filtra por motivo de exclusão de conta
@@ -118,7 +118,7 @@ async def deletar_usuario_route(
     # Remove todos os códigos do usuário antes de deletá-lo (evita erro por UPDATE de FK -> NULL)
     session.query(CodigoAutenticacao).filter(CodigoAutenticacao.usuario_id == usuario_db.id).delete(synchronize_session=False)
     session.flush()
-
+    # Deleta o usuário e registra auditoria
     email_para_hash = usuario_db.email
     deletar_usuario(session, usuario_id)
     registrar_exclusao_usuario(session, email_para_hash)
@@ -146,6 +146,7 @@ async def listar_habilidades_faltantes_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao),
 ):
+    # Busca usuário
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -165,17 +166,18 @@ async def listar_habilidades_faltantes_route(
         .all()
     )
 
+    # Filtra apenas as habilidades que o usuário não possui
     faltantes = [
         {
             "id": hid,
             "nome": nome,
-            "frequencia": int(freq) if freq is not None else 0,
+            "frequencia": int(freq) if freq is not None else 0, # converte para int e trata None
         }
         for (hid, nome, freq) in rows
         if hid not in ids_usuario
     ]
 
-    faltantes.sort(key=lambda x: x["frequencia"], reverse=True)
+    faltantes.sort(key=lambda x: x["frequencia"], reverse=True) # ordena por frequência decrescente
     return faltantes
 
 # Todas as carreiras por compatibilidade (ponderada por frequência) - AUTENTICADA
@@ -185,13 +187,15 @@ async def top_carreiras_usuario_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao),
 ):
+    # Busca usuário
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    resultados = top_n_carreiras_por_usuario(
+    
+    # Calcula compatibilidade para todas as carreiras
+    resultados = compatibilidade_carreiras_por_usuario(
         session,
         usuario_id,
-        n=None,
         min_freq=None,
         coverage_ratio=0.8,
     )
@@ -205,9 +209,12 @@ async def compatibilidade_usuario_carreira_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao),
 ):
+    # Busca usuário
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    # Calcula compatibilidade para a carreira específica
     resultado = calcular_compatibilidade_usuario_carreira(
         session,
         usuario_id,
@@ -225,9 +232,11 @@ async def adicionar_habilidade_usuario_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    # Verifica se a relação já existe
     existe = session.query(UsuarioHabilidade).filter_by(usuario_id=usuario_id, habilidade_id=habilidade_id).first()
     if existe:
         raise HTTPException(status_code=400, detail="Habilidade já adicionada ao usuário")
+    # Adiciona a habilidade
     usuario_habilidade_data = UsuarioHabilidadeBase(usuario_id=usuario_id, habilidade_id=habilidade_id)
     return criar_usuario_habilidade(session, usuario_habilidade_data)
 
@@ -239,7 +248,9 @@ async def remover_habilidade_usuario_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    # Remove a habilidade
     resultado = remover_usuario_habilidade(session, usuario_id, habilidade_id)
+    # Verifica se a relação existia
     if not resultado:
         raise HTTPException(status_code=404, detail="Relação usuário-habilidade não encontrada")
     return resultado
