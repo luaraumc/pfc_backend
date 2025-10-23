@@ -1,6 +1,7 @@
 from app.models import Habilidade # modelo de tabela definido no arquivo models.py
 from app.schemas import HabilidadeBase, HabilidadeOut, HabilidadeAtualizar # schema de entrada e saída
 from app.models import Categoria
+from sqlalchemy.orm import joinedload
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
@@ -44,9 +45,16 @@ def atualizar_habilidade(session, id: int, habilidade_data: HabilidadeAtualizar)
 
 # DELETE - Remove uma habilidade pelo id
 def deletar_habilidade(session, id: int) -> HabilidadeOut | None:
-    habilidade = session.query(Habilidade).filter(Habilidade.id == id).first()  # Busca a habilidade pelo id
+    # Carrega a habilidade com a relação de categoria eager-loaded para evitar DetachedInstanceError
+    habilidade = (
+        session.query(Habilidade)
+        .options(joinedload(Habilidade.categoria_rel))
+        .filter(Habilidade.id == id)
+        .first()
+    )
     if habilidade:
+        dto = HabilidadeOut.model_validate(habilidade)
         session.delete(habilidade)  # Remove do banco
         session.commit()
-        return HabilidadeOut.model_validate(habilidade) # Retorna a habilidade removida como schema de saída
+        return dto
     return None
