@@ -83,18 +83,14 @@ def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finai
     if not vaga:
         raise ValueError("Vaga não encontrada")
 
-    # Obtem sugestões de categoria da IA para esta descrição (mapeadas por chave dedup)
-    itens_sugeridos = extrair_habilidades_descricao(vaga.descricao, session=session)
+    # Usa as sugestões vindas do payload (preview do cliente) — sem reexecutar IA
     categoria_por_chave: dict[str, str | None] = {}
-    for item in itens_sugeridos:
+    for item in (habilidades_finais or []):
         nome = item.get("nome") if isinstance(item, dict) else str(item)
-        cat_sug = item.get("categoria_sugerida") if isinstance(item, dict) else None
+        cat_sug = (item.get("categoria_sugerida") or None) if isinstance(item, dict) else None
         chave = deduplicar(normalizar_habilidade(nome, session=session))
-        if chave not in categoria_por_chave:
-            categoria_por_chave[chave] = cat_sug
+        categoria_por_chave[chave] = cat_sug
 
-    # Normaliza e deduplica conforme lógica atual (usando session e deduplicação)
-    # Agora aceitamos objetos com nome, categoria_id e habilidade_id
     vistos = set()
     finais_norm: list[dict] = []  # cada item: { nome_norm, categoria_id?, habilidade_id? }
     for h in habilidades_finais:
