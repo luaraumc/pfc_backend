@@ -197,7 +197,7 @@ async def top_carreiras_usuario_route(
         session,
         usuario_id,
         min_freq=None,
-        coverage_ratio=0.8,
+        taxa_cobertura=0.8,
     )
     return resultados
 
@@ -220,7 +220,7 @@ async def compatibilidade_usuario_carreira_route(
         usuario_id,
         carreira_id,
         min_freq=None,
-        coverage_ratio=0.8,
+        taxa_cobertura=0.8,
     )
     return resultado
 

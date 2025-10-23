@@ -19,7 +19,7 @@ def calcular_compatibilidade_usuario_carreira(
     carreira_id: int,
     *,
     min_freq: int | None = None, # frequência mínima de CarreiraHabilidade a considerar
-    coverage_ratio: float | None = 0.8, # proporção do núcleo da carreira a considerar
+    taxa_cobertura: float | None = 0.8, # proporção do núcleo da carreira a considerar
 ) -> Dict[str, Any]:
     
     """
@@ -72,17 +72,17 @@ def calcular_compatibilidade_usuario_carreira(
     # Soma total considerando filtro/transformação
     peso_total_considerado = sum(peso for _, peso in habilidades_consideradas)
 
-    # Define o denominador com base na coverage_ratio (núcleo da carreira)
+    # Define o denominador com base na taxa_cobertura (núcleo da carreira)
     ids_nucleo: Set[int] = set()
     denominador = peso_total_considerado
-    # Calcula o núcleo baseado na coverage_ratio
+    # Calcula o núcleo baseado na taxa_cobertura
     if (
-        coverage_ratio is not None
-        and isinstance(coverage_ratio, (int, float)) # garante que é numérico
-        and 0 < float(coverage_ratio) < 1 # entre 0 e 1
+        taxa_cobertura is not None
+        and isinstance(taxa_cobertura, (int, float)) # garante que é numérico
+        and 0 < float(taxa_cobertura) < 1 # entre 0 e 1
         and peso_total_considerado > 0 # evita divisão por zero
     ):
-        alvo = float(coverage_ratio) * peso_total_considerado # alvo de peso para o núcleo
+        alvo = float(taxa_cobertura) * peso_total_considerado # alvo de peso para o núcleo
         ordenadas = sorted(habilidades_consideradas, key=lambda t: t[1], reverse=True) # ordena por peso decrescente
         acumulado = 0.0 # acumula peso até atingir o alvo
         for habilidade_id, peso in ordenadas:
@@ -134,7 +134,7 @@ def compatibilidade_carreiras_por_usuario(
     usuario_id: int,
     *,
     min_freq: int | None = None, # frequência mínima de CarreiraHabilidade a considerar
-    coverage_ratio: float | None = 0.8, # proporção do núcleo da carreira a considerar
+    taxa_cobertura: float | None = 0.8, # proporção do núcleo da carreira a considerar
 ) -> List[Dict[str, Any]]:
 
     # Busca todas as carreiras e calcula compatibilidade
@@ -146,7 +146,7 @@ def compatibilidade_carreiras_por_usuario(
             usuario_id,
             carreira_item.id,
             min_freq=min_freq,
-            coverage_ratio=coverage_ratio,
+            taxa_cobertura=taxa_cobertura,
         )
         resultados.append(resultado)
 
