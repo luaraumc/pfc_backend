@@ -1,5 +1,3 @@
-# executar no terminal para rodar: python -m uvicorn app.main:app --reload
-
 from fastapi import FastAPI # classe FastAPI
 from fastapi.middleware.cors import CORSMiddleware # middleware para permitir requisições de diferentes origens
 
