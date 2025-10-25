@@ -1,33 +1,11 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint # tipos de dados e restrições
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, UniqueConstraint, Boolean, CheckConstraint # tipos de dados e restrições
 from sqlalchemy.sql import func # permite usar funções SQL, como NOW() para timestamps automáticos
-from sqlalchemy.orm import relationship # cria relacionamentos entre tabelas
-
-# Configuração da conexão com o banco de dados
-def setup_database():
-    """
-    Realiza toda a configuração da conexão com o banco de dados e retorna:
-    - engine: objeto de conexão
-    - SessionLocal: função para criar sessões
-    - Base: classe base para os modelos ORM
-    """
-	
-    import os
-    from dotenv import load_dotenv
-    from sqlalchemy import create_engine # cria a conexão com o banco de dados
-    from sqlalchemy.orm import sessionmaker, declarative_base # cria sessões para interagir com o banco e define a classe base para os modelos
-
-    load_dotenv()
-    DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    engine = create_engine(DATABASE_URL)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base = declarative_base()
-    return engine, SessionLocal, Base
-
-engine, SessionLocal, Base = setup_database()
+from sqlalchemy.orm import relationship, backref # cria relacionamentos entre tabelas
+from app.dependencies import Base # configuração da conexão com o banco de dados
 
 # ===================== TABELAS PRINCIPAIS =====================
 
-# Modelo da tabela curso
+# Modelo da tabela "curso"
 class Curso(Base):
 	__tablename__ = 'curso'
 	id = Column(Integer, primary_key=True, index=True)
@@ -50,8 +28,9 @@ class Usuario(Base):
 	nome = Column(String(100), nullable=False)
 	email = Column(String(150), unique=True, nullable=False)
 	senha = Column(Text, nullable=False)
-	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=False)
-	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=False)
+	admin = Column(Boolean, default=False, nullable=False)
+	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=True)
+	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=True)
 	criado_em = Column(DateTime, server_default=func.now(), nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 	carreira = relationship('Carreira', backref='usuarios')
@@ -62,11 +41,33 @@ class Habilidade(Base):
 	__tablename__ = 'habilidade'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), unique=True, nullable=False)
+	categoria_id = Column(Integer, ForeignKey('categoria.id', ondelete='RESTRICT'), nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+	categoria_rel = relationship('Categoria', backref='habilidades')
+
+	# leitura do nome da categoria para mostrar no front
+	@property
+	def categoria(self) -> str | None:
+		return getattr(self.categoria_rel, 'nome', None)
 
 # Modelo da tabela "conhecimento"
 class Conhecimento(Base):
 	__tablename__ = 'conhecimento'
+	id = Column(Integer, primary_key=True, index=True)
+	nome = Column(String(300), unique=True, nullable=False)
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+
+# Modelo da tabela "normalizacao"
+class Normalizacao(Base):
+	__tablename__ = 'normalizacao'
+	id = Column(Integer, primary_key=True, index=True)
+	nome = Column(String(200), unique=True, nullable=False)  # regex/padrão (ex.: r"^node(js)?$")
+	nome_padronizado = Column(String(150), nullable=False)   # valor canônico (ex.: "Node.js")
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+
+# Modelo da tabela "categoria"
+class Categoria(Base):
+	__tablename__ = 'categoria'
 	id = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(150), unique=True, nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
@@ -83,11 +84,48 @@ class Compatibilidade(Base):
 	usuario = relationship('Usuario', backref='compatibilidades')
 	carreira = relationship('Carreira', backref='compatibilidades')
 	curso = relationship('Curso', backref='compatibilidades')
-	
+
+# Modelo da tabela "codigo_autenticacao" (códigos multiuso: recuperação de senha, atualização de senha, exclusão de conta)
+class CodigoAutenticacao(Base):
+	__tablename__ = "codigo_autenticacao"
+	id = Column(Integer, primary_key=True, index=True)
+	usuario_id = Column(Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False)
+	codigo_recuperacao = Column(String(255), nullable=False)
+	codigo_expira_em = Column(DateTime, nullable=False)
+	motivo = Column(String(50), nullable=False, server_default='recuperacao_senha')
+	usuario = relationship(
+		"Usuario",
+		foreign_keys=[usuario_id], # especifica qual coluna é a FK usada no relacionamento
+		passive_deletes=True, # garante que ao excluir o usuário, os códigos relacionados sejam excluídos automaticamente
+		backref=backref("codigos_autenticacao", passive_deletes=True)
+	)
+
+# Modelo da tabela "log_exclusoes"
+class LogExclusao(Base):
+	__tablename__ = 'log_exclusoes'
+	id = Column(Integer, primary_key=True, index=True)
+	email_hash = Column(String(128), nullable=False, index=True)
+	acao = Column(String(50), nullable=False, server_default='exclusao definitiva')
+	data_hora_exclusao = Column(DateTime, nullable=False, server_default=func.now())
+	responsavel = Column(String(50), nullable=False, server_default='usuario')
+	motivo = Column(String(100), nullable=False, server_default='pedido do titular')
+
+# Modelo da tabela "vaga"
+class Vaga(Base):
+	__tablename__ = 'vaga'
+	id = Column(Integer, primary_key=True, index=True)
+	titulo = Column(String(200), nullable=False)  # removido unique=True
+	descricao = Column(Text, nullable=False, unique=True)
+	criado_em = Column(DateTime, server_default=func.now(), nullable=False)
+	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
+	carreira_id = Column(Integer, ForeignKey("carreira.id", ondelete="SET NULL"), nullable=True)
+	carreira = relationship("Carreira", backref="vagas")
+
 # backref: cria um relacionamento bidirecional entre os modelos
 
 # ===================== TABELAS RELACIONAIS =====================
 
+# Modelo da tabela "curso_conhecimento"
 class CursoConhecimento(Base):
     __tablename__ = 'curso_conhecimento'
     id = Column(Integer, primary_key=True, index=True)
@@ -97,15 +135,20 @@ class CursoConhecimento(Base):
         UniqueConstraint('curso_id', 'conhecimento_id', name='uq_curso_conhecimento'),
     )
 
+# Modelo da tabela "carreira_habilidade"
 class CarreiraHabilidade(Base):
     __tablename__ = 'carreira_habilidade'
     id = Column(Integer, primary_key=True, index=True)
+    frequencia = Column(Integer, nullable=True) # nova coluna para armazenar a frequência
     carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='CASCADE'), nullable=False)
     habilidade_id = Column(Integer, ForeignKey('habilidade.id', ondelete='CASCADE'), nullable=False)
+	
     __table_args__ = (
         UniqueConstraint('carreira_id', 'habilidade_id', name='uq_carreira_habilidade'),
     )
 
+
+# Modelo da tabela "usuario_habilidade"
 class UsuarioHabilidade(Base):
     __tablename__ = 'usuario_habilidade'
     id = Column(Integer, primary_key=True, index=True)
@@ -115,13 +158,25 @@ class UsuarioHabilidade(Base):
         UniqueConstraint('usuario_id', 'habilidade_id', name='uq_usuario_habilidade'),
     )
 
-class ConhecimentoHabilidade(Base):
-    __tablename__ = 'conhecimento_habilidade'
+# Modelo da tabela "conhecimento_categoria"
+class ConhecimentoCategoria(Base):
+	__tablename__ = 'conhecimento_categoria'
+	id = Column(Integer, primary_key=True, index=True)
+	conhecimento_id = Column(Integer, ForeignKey('conhecimento.id', ondelete='CASCADE'), nullable=False)
+	categoria_id = Column(Integer, ForeignKey('categoria.id', ondelete='CASCADE'), nullable=False)
+	peso = Column(Integer, nullable=True)
+	__table_args__ = (
+		UniqueConstraint('conhecimento_id', 'categoria_id', name='uq_conhecimento_categoria'),
+	)
+
+# Modelo da tabela "vaga_habilidade"
+class VagaHabilidade(Base):
+    __tablename__ = 'vaga_habilidade'
     id = Column(Integer, primary_key=True, index=True)
-    conhecimento_id = Column(Integer, ForeignKey('conhecimento.id', ondelete='CASCADE'), nullable=False)
+    vaga_id = Column(Integer, ForeignKey('vaga.id', ondelete='CASCADE'), nullable=False)
     habilidade_id = Column(Integer, ForeignKey('habilidade.id', ondelete='CASCADE'), nullable=False)
     __table_args__ = (
-        UniqueConstraint('conhecimento_id', 'habilidade_id', name='uq_conhecimento_habilidade'),
+        UniqueConstraint('vaga_id', 'habilidade_id', name='uq_vaga_habilidade'),
     )
 
 # ondelete='CASCADE': garante que ao excluir o registro principal os relacionados também sejam excluídos
