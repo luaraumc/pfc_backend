@@ -5,16 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware # middleware para permitir re
 
 app = FastAPI() # instancia da classe FastAPI
 
-# definindo as origens permitidas para requisições CORS
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173"
-]
-
 # configurando o middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["https://pfc-frontend-nruzgymp1-pfcs-projects-57dea7c7.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
