@@ -6,7 +6,7 @@ app = FastAPI() # instancia da classe FastAPI
 # configurando o middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://pfc-frontend-nruzgymp1-pfcs-projects-57dea7c7.vercel.app"],
+    allow_origins=["https://pfc-frontend-chi.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
