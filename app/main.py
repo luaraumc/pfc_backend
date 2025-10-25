@@ -1,7 +1,10 @@
 from fastapi import FastAPI # classe FastAPI
 from fastapi.middleware.cors import CORSMiddleware # middleware para permitir requisições de diferentes origens
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 app = FastAPI() # instancia da classe FastAPI
+
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # configurando o middleware CORS
 app.add_middleware(
