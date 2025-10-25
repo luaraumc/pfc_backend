@@ -47,4 +47,3 @@ def deletar_curso(session, id: int) -> CursoOut | None:
         session.commit()
         return CursoOut.model_validate(curso) # Retorna o curso removido como schema de saída
     return None
-
