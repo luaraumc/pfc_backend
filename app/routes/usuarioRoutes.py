@@ -193,12 +193,7 @@ async def top_carreiras_usuario_route(
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
     # Calcula compatibilidade para todas as carreiras
-    resultados = compatibilidade_carreiras_por_usuario(
-        session,
-        usuario_id,
-        min_freq=None,
-        taxa_cobertura=0.8,
-    )
+    resultados = compatibilidade_carreiras_por_usuario(session, usuario_id)
     return resultados
 
 # Compatibilidade do usuário para uma carreira específica - AUTENTICADA
@@ -215,13 +210,7 @@ async def compatibilidade_usuario_carreira_route(
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
     # Calcula compatibilidade para a carreira específica
-    resultado = calcular_compatibilidade_usuario_carreira(
-        session,
-        usuario_id,
-        carreira_id,
-        min_freq=None,
-        taxa_cobertura=0.8,
-    )
+    resultado = calcular_compatibilidade_usuario_carreira(session, usuario_id, carreira_id)
     return resultado
 
 # Adicionar habilidade ao usuário - AUTENTICADA
