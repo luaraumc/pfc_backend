@@ -3,6 +3,10 @@ from sqlalchemy.orm import Session # sessões para interagir com o banco
 from app.models import Compatibilidade, UsuarioHabilidade, CarreiraHabilidade, Carreira,Habilidade # modelos de tabela definidos no arquivo models.py
 from app.schemas import CompatibilidadeBase, CompatibilidadeOut # schema de entrada e saída
 
+# Configuração padrão centralizada para evitar duplicação de literais
+DEFAULT_MIN_FREQ: int | None = None
+DEFAULT_TAXA_COBERTURA: float = 1.0 #proporção do núcleo da carreira (100%)
+
 # Conjunto de IDs de habilidades que o usuário possui
 def _ids_habilidades_do_usuario(session: Session, usuario_id: int) -> Set[int]:
     linhas = (
@@ -18,8 +22,8 @@ def calcular_compatibilidade_usuario_carreira(
     usuario_id: int,
     carreira_id: int,
     *,
-    min_freq: int | None = None, # frequência mínima de CarreiraHabilidade a considerar
-    taxa_cobertura: float | None = 0.8, # proporção do núcleo da carreira a considerar
+    min_freq: int | None = DEFAULT_MIN_FREQ, # frequência mínima de CarreiraHabilidade a considerar
+    taxa_cobertura: float | None = DEFAULT_TAXA_COBERTURA, # proporção do núcleo da carreira a considerar (padrão 80%)
 ) -> Dict[str, Any]:
     
     """
@@ -133,8 +137,8 @@ def compatibilidade_carreiras_por_usuario(
     session: Session,
     usuario_id: int,
     *,
-    min_freq: int | None = None, # frequência mínima de CarreiraHabilidade a considerar
-    taxa_cobertura: float | None = 0.8, # proporção do núcleo da carreira a considerar
+    min_freq: int | None = DEFAULT_MIN_FREQ, # frequência mínima de CarreiraHabilidade a considerar
+    taxa_cobertura: float | None = DEFAULT_TAXA_COBERTURA, # proporção do núcleo da carreira a considerar (padrão 80%)
 ) -> List[Dict[str, Any]]:
 
     # Busca todas as carreiras e calcula compatibilidade
