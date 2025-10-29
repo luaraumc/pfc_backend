@@ -207,7 +207,6 @@ class LoginSchema(BaseModel):
 
 class AtualizarUsuarioSchema(BaseModel):
     nome: str
-    email: str
     carreira_id: int
     curso_id: int
 

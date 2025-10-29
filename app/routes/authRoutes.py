@@ -7,12 +7,11 @@ from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do 
 from app.config import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, kEY_CRYPT # configuração de criptografia e autenticação
 from app.schemas import UsuarioBase, LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema # schemas para validação de dados
 from jose import JWTError, jwt # trabalhar com JSON Web Token (JWT)
-import smtplib # enviar emails
-from email.mime.text import MIMEText # formatar o conteúdo do email
 from random import randint # gerar números aleatórios
 from datetime import datetime, timedelta, timezone # lidar com datas e horas | manipular durações de tempo | lidar com fusos horários
 from dotenv import load_dotenv # carregar as variáveis de ambiente
 import os # interagir com o sistema operacional
+import resend # enviar emails
 
 load_dotenv()
 
@@ -126,22 +125,25 @@ def autenticar_usuario(email, senha, session):
     return usuario
 
 # Para enviar o email com o código
-def enviar_email(destinatario, codigo):
-    # configurações do email
-    remetente = os.getenv("EMAIL_REMETENTE")
-    senha = os.getenv("EMAIL_SENHA")
+def enviar_email(destinatario: str, codigo: str):
     assunto = "Código"
     corpo = f"Seu código é: {codigo}"
+    resend.api_key = os.getenv("RESEND_API_KEY")
+    remetente = os.getenv("EMAIL_FROM")
 
-    # formata o email
-    msg = MIMEText(corpo)
-    msg["Subject"] = assunto
-    msg["From"] = remetente
-    msg["To"] = destinatario
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp: # conecta ao servidor do Gmail
-        smtp.login(remetente, senha) # faz login com o email e a senha do remetente
-        smtp.sendmail(remetente, destinatario, msg.as_string()) # envia o email
+    try:
+        resp = resend.Emails.send({
+            "from": remetente,
+            "to": [destinatario],
+            "subject": assunto,
+            "text": corpo,
+        })
+        # validação de sucesso do envio quando o e-mail foi aceito pela Resend
+        if not resp or not resp.get("id"):
+            raise RuntimeError(str(resp))
+        return resp
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Falha ao enviar email: {e}")
 
 # Gera e envia o código de verificação por email e envia o email
 def _gerar_codigo(session: Session, usuario: Usuario, motivo: str):
