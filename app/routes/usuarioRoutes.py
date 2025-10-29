@@ -45,7 +45,7 @@ async def solicitar_codigo_atualizar(payload: SolicitarCodigoSchema, session: Se
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     _gerar_codigo(session, usuario, "atualizar_senha")
-    return {"message": "Código enviado para atualização de senha"}
+    return {"message": "Código enviado para atualização de senha."}
 
 # Confirmar código + atualizar senha - AUTENTICADA
 @usuarioRouter.put("/atualizar-senha/{usuario_id}")
@@ -86,7 +86,7 @@ async def solicitar_codigo_exclusao(payload: SolicitarCodigoSchema, session: Ses
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     _gerar_codigo(session, usuario, "exclusao_conta")
-    return {"message": "Código enviado para exclusão de conta"}
+    return {"message": "Código enviado para exclusão de conta."}
 
 # Confirmar código + deletar usuário - AUTENTICADA
 @usuarioRouter.delete("/deletar/{usuario_id}")
@@ -123,7 +123,7 @@ async def deletar_usuario_route(
     deletar_usuario(session, usuario_id)
     registrar_exclusao_usuario(session, email_para_hash)
     session.commit()
-    return {"message": f"Usuário deletado com sucesso e registrado em auditoria"}
+    return {"message": f"Usuário deletado com sucesso e registrado em auditoria."}
 
 # ======================= HABILIDADES DO USUÁRIO =======================
 
