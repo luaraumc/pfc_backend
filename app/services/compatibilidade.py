@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Set, Tuple # tipos para anotações
 from sqlalchemy.orm import Session # sessões para interagir com o banco
 from app.models import UsuarioHabilidade, CarreiraHabilidade, Carreira,Habilidade # modelos de tabela definidos no arquivo models.py
 
-
 # Configuração padrão centralizada para evitar duplicação de literais
 DEFAULT_MIN_FREQ: int | None = None
 DEFAULT_TAXA_COBERTURA: float = 1.0 #proporção do núcleo da carreira (100%)

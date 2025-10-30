@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
+from fastapi import APIRouter, Depends, HTTPException, Request, Response # cria dependências e exceções HTTP
 from fastapi.security import OAuth2PasswordRequestForm # esquema de segurança para autenticação
 from app.services.usuario import criar_usuario # serviços relacionados ao usuário
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
@@ -14,6 +14,7 @@ import os # interagir com o sistema operacional
 import resend # enviar emails
 
 load_dotenv()
+PRODUCTION = os.getenv("ENV") == "production" or os.getenv("PRODUCTION") == "1"
 
 # Inicializa o router
 authRouter = APIRouter(prefix="/auth", tags=["auth"])
@@ -46,27 +47,80 @@ async def cadastro(usuario_schema: UsuarioBase, session: Session = Depends(pegar
 
 # Login de usuário
 @authRouter.post("/login")
-async def login(login_schema: LoginSchema, session: Session = Depends(pegar_sessao)):
+async def login(login_schema: LoginSchema, session: Session = Depends(pegar_sessao), response: Response = None):
     usuario=autenticar_usuario(login_schema.email, login_schema.senha, session) # autentica o usuário
     if not usuario:
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos")
     else:
         access_token = criar_token(usuario.id) # cria o token de acesso
-        refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7)) # cria o token de atualização (7 dias)
+        # cria refresh token e seta em cookie HttpOnly (browser enviará automaticamente em requests subsequentes)
+        refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7)) # 7 dias
+
+        # set cookie seguro para produção (SameSite=None para cross-site, secure=True requer HTTPS)
+        if response is not None:
+            # max_age em segundos
+            response.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,
+                secure=PRODUCTION,
+                samesite=("None" if PRODUCTION else "Lax"),
+                max_age=7*24*3600,
+                path="/",
+            )
+
+        # retorna apenas o access token; refresh token é enviado em cookie HttpOnly
         return {
             "access_token": access_token,
-            "refresh_token": refresh_token,
             "token_type": "Bearer"
-            }
+        }
 
 # Usar o refresh token para obter um novo access token - AUTENTICADA
-@authRouter.get("/refresh")
-async def usar_refresh_token(usuario: Usuario = Depends(verificar_token)): # verifica o token de acesso
-    access_token = criar_token(usuario.id) # cria um novo token de acesso
-    return {
-        "access_token": access_token,
-        "token_type": "Bearer"
-        }
+@authRouter.post("/refresh")
+async def usar_refresh_token(request: Request, response: Response, session: Session = Depends(pegar_sessao)):
+    # Lê refresh token de cookie HttpOnly
+    refresh = request.cookies.get("refresh_token")
+    if not refresh:
+        raise HTTPException(status_code=401, detail="Sem refresh token")
+
+    try:
+        payload = jwt.decode(refresh, kEY_CRYPT, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token inválido")
+
+    usuario = session.get(Usuario, user_id)
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    # cria novo access token
+    access_token = criar_token(usuario.id)
+
+    # opcional: rotacionar refresh token
+    try:
+        new_refresh = criar_token(usuario.id, duracao_token=timedelta(days=7))
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh,
+            httponly=True,
+            secure=PRODUCTION,
+            samesite=("None" if PRODUCTION else "Lax"),
+            max_age=7*24*3600,
+            path="/",
+        )
+    except Exception:
+        # se a rotação falhar, não impede a emissão do access token
+        pass
+
+    return {"access_token": access_token, "token_type": "Bearer"}
+
+
+# Logout - remove refresh cookie
+@authRouter.post("/logout")
+async def logout(response: Response):
+    # Deleta o cookie de refresh no caminho raiz
+    response.delete_cookie(key="refresh_token", path="/")
+    return {"message": "Logout realizado"}
 
 # Solicitar código de verificação por email (motivo: recuperacao_senha)
 @authRouter.post("/solicitar-codigo/recuperar-senha")
