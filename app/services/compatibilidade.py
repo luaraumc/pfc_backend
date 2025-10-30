@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Set, Tuple # tipos para anotações
 from sqlalchemy.orm import Session # sessões para interagir com o banco
-from app.models import Compatibilidade, UsuarioHabilidade, CarreiraHabilidade, Carreira,Habilidade # modelos de tabela definidos no arquivo models.py
-from app.schemas import CompatibilidadeBase, CompatibilidadeOut # schema de entrada e saída
+from app.models import UsuarioHabilidade, CarreiraHabilidade, Carreira,Habilidade # modelos de tabela definidos no arquivo models.py
+
 
 # Configuração padrão centralizada para evitar duplicação de literais
 DEFAULT_MIN_FREQ: int | None = None
