@@ -80,19 +80,6 @@ class ConhecimentoOut(ConhecimentoBase):
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
-# Schema de Compatibilidade
-class CompatibilidadeBase(BaseModel):
-    usuario_id: int
-    carreira_id: int
-    curso_id: int
-    compatibilidade: float
-
-class CompatibilidadeOut(CompatibilidadeBase):
-    id: int
-    atualizado_em: datetime
-
-    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
-
 # Schema de RecuperacaoSenha
 class CodigoAutenticacaoBase(BaseModel):
     usuario_id: int
