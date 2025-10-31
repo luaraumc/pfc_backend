@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response # cria dependências e exceções HTTP
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Body # cria dependências e exceções HTTP
 from fastapi.security import OAuth2PasswordRequestForm # esquema de segurança para autenticação
 from app.services.usuario import criar_usuario # serviços relacionados ao usuário
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
@@ -12,6 +12,8 @@ from datetime import datetime, timedelta, timezone # lidar com datas e horas | m
 from dotenv import load_dotenv # carregar as variáveis de ambiente
 import os # interagir com o sistema operacional
 import resend # enviar emails
+from pydantic import ValidationError
+from app.utils.errors import raise_validation_http_exception
 
 load_dotenv()
 PRODUCTION = os.getenv("ENV") == "production" or os.getenv("PRODUCTION") == "1"
@@ -21,7 +23,13 @@ authRouter = APIRouter(prefix="/auth", tags=["auth"])
 
 # Cadastrar usuário
 @authRouter.post("/cadastro")
-async def cadastro(usuario_schema: UsuarioBase, session: Session = Depends(pegar_sessao)): # passa como parametro os dados que o usuário tem que inserir ao acessar a rota e a sessão do banco de dados
+async def cadastro(usuario_payload: dict = Body(...), session: Session = Depends(pegar_sessao)):
+    # valida payload usando Pydantic para capturar mensagens legíveis
+    try:
+        usuario_schema = UsuarioBase.model_validate(usuario_payload)
+    except ValidationError as e:
+        raise_validation_http_exception(e)
+
     usuario = session.query(Usuario).filter(Usuario.email == usuario_schema.email).first() # verifica se o email já existe no banco de dados. (first pega o primeiro resultado que encontrar, se encontrar algum resultado, significa que o email já existe)
     if usuario:
         raise HTTPException(status_code=400, detail="Email já cadastrado") # se ja existir um usuario com esse email, retorna um erro
@@ -47,7 +55,12 @@ async def cadastro(usuario_schema: UsuarioBase, session: Session = Depends(pegar
 
 # Login de usuário
 @authRouter.post("/login")
-async def login(login_schema: LoginSchema, session: Session = Depends(pegar_sessao), response: Response = None):
+async def login(login_payload: dict = Body(...), session: Session = Depends(pegar_sessao), response: Response = None):
+    try:
+        login_schema = LoginSchema.model_validate(login_payload)
+    except ValidationError as e:
+        raise_validation_http_exception(e)
+
     usuario=autenticar_usuario(login_schema.email, login_schema.senha, session) # autentica o usuário
     if not usuario:
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos")
@@ -133,7 +146,12 @@ async def solicitar_codigo_recuperar(payload: SolicitarCodigoSchema, session: Se
 
 # Confirmar código + recuperar senha
 @authRouter.post("/recuperar-senha")  # mantido nome para compatibilidade de frontend
-async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Session = Depends(pegar_sessao)):
+async def confirmar_nova_senha(nova_senha_payload: dict = Body(...), session: Session = Depends(pegar_sessao)):
+    try:
+        nova_senha = ConfirmarNovaSenhaSchema.model_validate(nova_senha_payload)
+    except ValidationError as e:
+        raise_validation_http_exception(e)
+
     # Busca último código válido para motivos de senha
     usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first()
     if not usuario:
