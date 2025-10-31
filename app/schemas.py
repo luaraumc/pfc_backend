@@ -1,6 +1,7 @@
-from pydantic import BaseModel # criação dos schemas
+from pydantic import BaseModel, field_validator # criação dos schemas e validação de campos
 from datetime import datetime # campos de data e hora
 from typing import List, Dict # tipos para listas e dicionários
+import re # expressões regulares para validação de senha e e-mail
 
 """
 Classes Base: representam os dados que serão enviados (POST). Não precisam dos campos autoincrement, pois são gerados pelo banco
@@ -40,6 +41,27 @@ class UsuarioBase(BaseModel):
     admin: bool = False # por padrão, o usuário não é admin
     carreira_id: int | None = None # usuário admin não precisa de carreira
     curso_id: int | None = None # usuário admin não precisa de curso
+
+    @field_validator("email")
+    def validar_email(valor: str) -> str:
+        valor = valor.strip()
+        if "@" not in valor:
+            raise ValueError("E-mail inválido: deve conter '@'")
+        if not valor.lower().endswith(".com"):
+            raise ValueError("E-mail inválido: domínio deve terminar em '.com'")
+        return valor
+
+    @field_validator("senha")
+    def validar_senha(valor: str) -> str:
+        if len(valor) < 6:
+            raise ValueError("Senha deve ter no mínimo 6 caracteres")
+        if not re.search(r"[A-Z]", valor):
+            raise ValueError("Senha deve conter ao menos uma letra maiúscula")
+        if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>\/?\\|]", valor):
+            raise ValueError("Senha deve conter ao menos um caractere especial")
+        return valor
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 class UsuarioOut(UsuarioBase):
     id: int
@@ -190,6 +212,19 @@ class LoginSchema(BaseModel):
     email: str
     senha: str
 
+    @field_validator("email")
+    def validar_email_login(valor: str) -> str:
+        valor = valor.strip()
+        if "@" not in valor or not valor.lower().endswith(".com"):
+            raise ValueError("E-mail inválido")
+        return valor
+
+    @field_validator("senha")
+    def validar_senha_login(valor: str) -> str:
+        if len(valor) < 6:
+            raise ValueError("Senha inválida")
+        return valor
+
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 class AtualizarUsuarioSchema(BaseModel):
@@ -213,6 +248,18 @@ class ConfirmarNovaSenhaSchema(BaseModel):
     email: str
     codigo: str
     nova_senha: str
+
+    @field_validator("nova_senha")
+    def validar_nova_senha(valor: str) -> str:
+        if len(valor) < 6:
+            raise ValueError("Nova senha deve ter no mínimo 6 caracteres")
+        if not re.search(r"[A-Z]", valor):
+            raise ValueError("Nova senha deve conter ao menos uma letra maiúscula")
+        if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>\/?\\|]", valor):
+            raise ValueError("Nova senha deve conter ao menos um caractere especial")
+        return valor
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 class ItemSimples(BaseModel):
     id: int
