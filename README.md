@@ -22,7 +22,7 @@ pip install -r requirements.txt
 ```
 # Banco de dados
 DB_HOST=host
-DB_PORT=porta
+DB_PORT=port
 DB_NAME=banco
 DB_USER=usuario
 DB_PASSWORD=senha
@@ -38,15 +38,12 @@ EMAIL_FROM=email@dominio.com>
 
 # OpenAI
 OPENAI_API_KEY=chave_openai
-```
-
-4) Configure o Alembic para usar o mesmo banco
-
-O arquivo `alembic.ini` contém a chave `sqlalchemy.url`. Garanta que ela aponte para o mesmo banco especificado no `.env`. Exemplo:
 
 ```
-sqlalchemy.url = postgresql+psycopg2://DB_USER:DB_PASSWORD@DB_HOST:DB_PORT/DB_NAME
-```
+
+4) Configure o Alembic
+
+O arquivo `alembic.ini` contém a chave `sqlalchemy.url`. Garanta que ela aponte para o mesmo banco especificado no `.env`.
 
 ## Rodando o servidor
 
