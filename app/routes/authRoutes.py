@@ -16,7 +16,6 @@ from pydantic import ValidationError
 from app.utils.errors import raise_validation_http_exception
 
 load_dotenv()
-PRODUCTION = os.getenv("ENV") == "production" or os.getenv("PRODUCTION") == "1"
 
 # Inicializa o router
 authRouter = APIRouter(prefix="/auth", tags=["auth"])
@@ -69,15 +68,14 @@ async def login(login_payload: dict = Body(...), session: Session = Depends(pega
         # cria refresh token e seta em cookie HttpOnly (browser enviará automaticamente em requests subsequentes)
         refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7)) # 7 dias
 
-        # set cookie seguro para produção (SameSite=None para cross-site, secure=True requer HTTPS)
+        # seta cookie HttpOnly para cross-site (SameSite=None; Secure)
         if response is not None:
-            # max_age em segundos
             response.set_cookie(
                 key="refresh_token",
                 value=refresh_token,
                 httponly=True,
-                secure=PRODUCTION,
-                samesite=("None" if PRODUCTION else "Lax"),
+                secure=True,
+                samesite="None",
                 max_age=7*24*3600,
                 path="/",
             )
@@ -112,17 +110,17 @@ async def usar_refresh_token(request: Request, response: Response, session: Sess
     # opcional: rotacionar refresh token
     try:
         new_refresh = criar_token(usuario.id, duracao_token=timedelta(days=7))
+        # atualiza cookie de refresh para cross-site
         response.set_cookie(
             key="refresh_token",
             value=new_refresh,
             httponly=True,
-            secure=PRODUCTION,
-            samesite=("None" if PRODUCTION else "Lax"),
+            secure=True,
+            samesite="None",
             max_age=7*24*3600,
             path="/",
         )
     except Exception:
-        # se a rotação falhar, não impede a emissão do access token
         pass
 
     return {"access_token": access_token, "token_type": "Bearer"}
@@ -131,7 +129,7 @@ async def usar_refresh_token(request: Request, response: Response, session: Sess
 # Logout - remove refresh cookie
 @authRouter.post("/logout")
 async def logout(response: Response):
-    # Deleta o cookie de refresh no caminho raiz
+    # remove o cookie de refresh
     response.delete_cookie(key="refresh_token", path="/")
     return {"message": "Logout realizado"}
 
