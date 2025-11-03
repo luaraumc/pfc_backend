@@ -22,7 +22,7 @@ pip install -r requirements.txt
 ```
 # Banco de dados
 DB_HOST=host
-DB_PORT=port
+DB_PORT=porta
 DB_NAME=banco
 DB_USER=usuario
 DB_PASSWORD=senha
@@ -38,7 +38,6 @@ EMAIL_FROM=email@dominio.com>
 
 # OpenAI
 OPENAI_API_KEY=chave_openai
-
 ```
 
 4) Configure o Alembic para usar o mesmo banco
