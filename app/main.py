@@ -1,5 +1,6 @@
 from fastapi import FastAPI # classe FastAPI
 from fastapi.middleware.cors import CORSMiddleware # middleware para permitir requisições de diferentes origens
+# python -m uvicorn app.main:app --reload
 
 app = FastAPI() # instancia da classe FastAPI
 
