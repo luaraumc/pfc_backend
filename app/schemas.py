@@ -59,6 +59,8 @@ class UsuarioBase(BaseModel):
     def validar_senha(valor: str) -> str:
         if len(valor) < 6:
             raise ValueError("Senha deve ter no mínimo 6 caracteres")
+        if re.search(r"\s", valor):
+            raise ValueError("Senha não pode conter espaços")
         if not re.search(r"[A-Z]", valor):
             raise ValueError("Senha deve conter ao menos uma letra maiúscula")
         if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>\/?\\|]", valor):
@@ -144,15 +146,6 @@ class VagaOut(VagaBase):
     model_config = {'from_attributes': True}
 
 
-# Schema de Vaga Completa
-class VagaCompletaOut(VagaOut):
-    habilidades_extraidas: list[str] = []
-    habilidades_criadas: list[str] = []
-    habilidades_ja_existiam: list[str] = []
-
-    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
-
-
 # ===================== TABELAS RELACIONAIS =====================
 
 # Schema de CursoConhecimento
@@ -233,6 +226,8 @@ class LoginSchema(BaseModel):
     def validar_senha_login(valor: str) -> str:
         if len(valor) < 6:
             raise ValueError("Senha inválida")
+        if re.search(r"\s", valor):
+            raise ValueError("Senha inválida")
         return valor
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
@@ -263,6 +258,8 @@ class ConfirmarNovaSenhaSchema(BaseModel):
     def validar_nova_senha(valor: str) -> str:
         if len(valor) < 6:
             raise ValueError("Nova senha deve ter no mínimo 6 caracteres")
+        if re.search(r"\s", valor):
+            raise ValueError("Nova senha não pode conter espaços")
         if not re.search(r"[A-Z]", valor):
             raise ValueError("Nova senha deve conter ao menos uma letra maiúscula")
         if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>\/?\\|]", valor):
