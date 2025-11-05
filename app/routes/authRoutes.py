@@ -31,7 +31,7 @@ async def cadastro(usuario_payload: dict = Body(...), session: Session = Depends
 
     usuario = session.query(Usuario).filter(Usuario.email == usuario_schema.email).first() # verifica se o email já existe no banco de dados. (first pega o primeiro resultado que encontrar, se encontrar algum resultado, significa que o email já existe)
     if usuario:
-        raise HTTPException(status_code=400, detail="Email já cadastrado") # se ja existir um usuario com esse email, retorna um erro
+        raise HTTPException(status_code=400, detail="Email já cadastrado.") # se ja existir um usuario com esse email, retorna um erro
 
     # Normaliza 0 -> None para evitar violação de FK
     if usuario_schema.carreira_id == 0:
@@ -42,15 +42,15 @@ async def cadastro(usuario_payload: dict = Body(...), session: Session = Depends
     # Se não é admin, exige carreira e curso válidos
     if not usuario_schema.admin:
         if usuario_schema.carreira_id is None or usuario_schema.curso_id is None:
-            raise HTTPException(status_code=400, detail="carreira_id e curso_id são obrigatórios para usuários não-admin")
+            raise HTTPException(status_code=400, detail="Carreira e Curso são obrigatórios.")
         if session.get(Carreira, usuario_schema.carreira_id) is None:
-            raise HTTPException(status_code=400, detail="Carreira inexistente")
+            raise HTTPException(status_code=400, detail="Carreira inexistente.")
         if session.get(Curso, usuario_schema.curso_id) is None:
-            raise HTTPException(status_code=400, detail="Curso inexistente")
+            raise HTTPException(status_code=400, detail="Curso inexistente.")
 
     usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) # criptografa a senha do usuário
     novo_usuario = criar_usuario(session, usuario_schema) # se não existir, cria o usuário
-    return {"message": f"Usuário cadastrado com sucesso {novo_usuario.nome}"}
+    return {"message": f"Usuário cadastrado com sucesso! Redirecionando..."}
 
 # Login de usuário
 @authRouter.post("/login")
@@ -62,7 +62,7 @@ async def login(login_payload: dict = Body(...), session: Session = Depends(pega
 
     usuario=autenticar_usuario(login_schema.email, login_schema.senha, session) # autentica o usuário
     if not usuario:
-        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos")
+        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
     else:
         access_token = criar_token(usuario.id) # cria o token de acesso
         # cria refresh token e seta em cookie HttpOnly (browser enviará automaticamente em requests subsequentes)
@@ -102,7 +102,7 @@ async def usar_refresh_token(request: Request, response: Response, session: Sess
 
     usuario = session.get(Usuario, user_id)
     if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
     # cria novo access token
     access_token = criar_token(usuario.id)
@@ -138,9 +138,9 @@ async def logout(response: Response):
 async def solicitar_codigo_recuperar(payload: SolicitarCodigoSchema, session: Session = Depends(pegar_sessao)):
     usuario = session.query(Usuario).filter(Usuario.email == payload.email).first()
     if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     _gerar_codigo(session, usuario, "recuperacao_senha")
-    return {"message": "Código enviado para recuperação de senha"}
+    return {"message": "Código enviado para recuperação de senha."}
 
 # Confirmar código + recuperar senha
 @authRouter.post("/recuperar-senha")  # mantido nome para compatibilidade de frontend
@@ -153,7 +153,7 @@ async def confirmar_nova_senha(nova_senha_payload: dict = Body(...), session: Se
     # Busca último código válido para motivos de senha
     usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first()
     if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
     rec = (
         session.query(CodigoAutenticacao)
@@ -162,16 +162,16 @@ async def confirmar_nova_senha(nova_senha_payload: dict = Body(...), session: Se
         .first()
     )
     if not rec:
-        raise HTTPException(status_code=404, detail="Nenhum código de verificação gerado para este email")
+        raise HTTPException(status_code=404, detail="Nenhum código de verificação gerado para este email.")
     if rec.codigo_expira_em < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="Código expirado")
+        raise HTTPException(status_code=400, detail="Código expirado.")
     if not bcrypt_context.verify(nova_senha.codigo, rec.codigo_recuperacao):
-        raise HTTPException(status_code=400, detail="Código inválido")
+        raise HTTPException(status_code=400, detail="Código inválido.")
 
     usuario.senha = bcrypt_context.hash(nova_senha.nova_senha)
     session.delete(rec) # remove o código usado
     session.commit()
-    return {"detail": "Senha atualizada com sucesso"}
+    return {"detail": "Senha atualizada com sucesso."}
 
 # ======================== FUNÇÕES AUXILIARES =======================
 
