@@ -6,8 +6,7 @@ app = FastAPI() # instancia da classe FastAPI
 
 # definindo as origens permitidas para requisições CORS
 origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173"
+    "https://www.rumotechno.com.br"
 ]
 
 # configurando o middleware CORS
