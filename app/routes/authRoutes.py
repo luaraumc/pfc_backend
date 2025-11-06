@@ -39,14 +39,12 @@ async def cadastro(usuario_payload: dict = Body(...), session: Session = Depends
     if usuario_schema.curso_id == 0:
         usuario_schema.curso_id = None
 
-    # Se não é admin, exige carreira e curso válidos
+    # Se não é admin, exige carreira valida
     if not usuario_schema.admin:
-        if usuario_schema.carreira_id is None or usuario_schema.curso_id is None:
-            raise HTTPException(status_code=400, detail="Carreira e Curso são obrigatórios.")
+        if usuario_schema.carreira_id is None:
+            raise HTTPException(status_code=400, detail="Carreira é obrigatória.")
         if session.get(Carreira, usuario_schema.carreira_id) is None:
             raise HTTPException(status_code=400, detail="Carreira inexistente.")
-        if session.get(Curso, usuario_schema.curso_id) is None:
-            raise HTTPException(status_code=400, detail="Curso inexistente.")
 
     usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) # criptografa a senha do usuário
     novo_usuario = criar_usuario(session, usuario_schema) # se não existir, cria o usuário
