@@ -186,10 +186,31 @@ class ConhecimentoCategoriaBase(BaseModel):
     categoria_id: int
     peso: int | None = None
 
+    @field_validator("peso")
+    def validar_peso(cls, v):
+        if v is None:
+            return v
+        if not (0 <= v <= 3):
+            raise ValueError("peso deve estar entre 0 e 3")
+        return v
+
 class ConhecimentoCategoriaOut(ConhecimentoCategoriaBase):
     id: int
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
+# Atualização parcial de ConhecimentoCategoria
+class ConhecimentoCategoriaAtualizar(BaseModel):
+    categoria_id: int | None = None
+    peso: int | None = None
+
+    @field_validator("peso")
+    def validar_peso(cls, v):
+        if v is None:
+            return v
+        if not (0 <= v <= 3):
+            raise ValueError("peso deve estar entre 0 e 3")
+        return v
 
 #Schema de VagaHabilidade
 
