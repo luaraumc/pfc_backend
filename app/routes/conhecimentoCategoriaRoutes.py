@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.schemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut
+from app.schemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut, ConhecimentoCategoriaAtualizar
 from app.dependencies import pegar_sessao, requer_admin
 
 conhecimentoCategoriaRouter = APIRouter(prefix="/conhecimento-categoria", tags=["conhecimento_categoria"])
@@ -34,3 +34,19 @@ def remover(
     if not rel:
         raise HTTPException(status_code=404, detail="Relação não encontrada")
     return {"status": "removida", "conhecimento_id": conhecimento_id, "categoria_id": categoria_id}
+
+@conhecimentoCategoriaRouter.put("/{relacao_id}", response_model=ConhecimentoCategoriaOut)
+def atualizar(
+    relacao_id: int,
+    payload: ConhecimentoCategoriaAtualizar,
+    session: Session = Depends(pegar_sessao),
+    usuario=Depends(requer_admin)
+):
+    from app.services.conhecimentoCategoria import atualizar_conhecimento_categoria
+    try:
+        rel = atualizar_conhecimento_categoria(session, relacao_id, payload)
+        if not rel:
+            raise HTTPException(status_code=404, detail="Relação não encontrada")
+        return rel
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
