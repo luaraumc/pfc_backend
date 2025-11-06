@@ -1,5 +1,5 @@
 from app.models import ConhecimentoCategoria  # modelo de tabela definido no arquivo models.py
-from app.schemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut  # schema de entrada e saída
+from app.schemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut, ConhecimentoCategoriaAtualizar  # schemas
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
@@ -30,4 +30,24 @@ def remover_conhecimento_categoria(session, conhecimento_id: int, categoria_id: 
         session.commit()
         return ConhecimentoCategoriaOut.model_validate(relacao)
     return None
+
+# UPDATE / PUT - Atualiza categoria_id e/ou peso da relação (parcial)
+def atualizar_conhecimento_categoria(session, relacao_id: int, data: ConhecimentoCategoriaAtualizar) -> ConhecimentoCategoriaOut | None:
+    relacao = session.query(ConhecimentoCategoria).filter_by(id=relacao_id).first()
+    if not relacao:
+        return None
+    payload = data.model_dump(exclude_unset=True)
+    # Se categoria_id foi informado, atualiza
+    if 'categoria_id' in payload and payload['categoria_id'] is not None:
+        relacao.categoria_id = payload['categoria_id']
+    # Se peso foi informado, atualiza (pode ser None para limpar)
+    if 'peso' in payload:
+        relacao.peso = payload['peso']
+    try:
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    session.refresh(relacao)
+    return ConhecimentoCategoriaOut.model_validate(relacao)
 
