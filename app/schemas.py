@@ -48,11 +48,12 @@ class UsuarioBase(BaseModel):
         if "@" not in valor:
             raise ValueError("E-mail inválido: deve conter '@'")
         try:
-            dominio = valor.split("@", 1)[1].lower() # obtém o domínio após o '@'
+            dominio = valor.split("@", 1)[1]
         except Exception:
             raise ValueError("E-mail inválido")
-        if ".com" not in dominio:
-            raise ValueError("E-mail inválido: domínio deve conter '.com'")
+        # domínio deve conter ao menos um ponto (ex.: .com, .org, .edu.br) e não iniciar/terminar com ponto
+        if "." not in dominio or dominio.startswith('.') or dominio.endswith('.'):
+            raise ValueError("E-mail inválido")
         return valor
 
     @field_validator("senha")
@@ -233,13 +234,15 @@ class LoginSchema(BaseModel):
     @field_validator("email")
     def validar_email_login(valor: str) -> str:
         valor = valor.strip()
+        # Aceita qualquer domínio com um ponto (ex: .com, .org, .edu.br, .tech)
         if "@" not in valor:
             raise ValueError("E-mail inválido")
         try:
-            dominio = valor.split("@", 1)[1].lower()
+            dominio = valor.split("@", 1)[1]
         except Exception:
             raise ValueError("E-mail inválido")
-        if ".com" not in dominio:
+        # domínio precisa ter ao menos um ponto e não começar/terminar com ponto
+        if "." not in dominio or dominio.startswith('.') or dominio.endswith('.'):
             raise ValueError("E-mail inválido")
         return valor
 
