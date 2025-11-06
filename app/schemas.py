@@ -233,13 +233,15 @@ class LoginSchema(BaseModel):
     @field_validator("email")
     def validar_email_login(valor: str) -> str:
         valor = valor.strip()
+        # Aceita qualquer domínio com um ponto (ex: .com, .org, .edu.br, .tech)
         if "@" not in valor:
             raise ValueError("E-mail inválido")
         try:
-            dominio = valor.split("@", 1)[1].lower()
+            dominio = valor.split("@", 1)[1]
         except Exception:
             raise ValueError("E-mail inválido")
-        if ".com" not in dominio:
+        # domínio precisa ter ao menos um ponto e não começar/terminar com ponto
+        if "." not in dominio or dominio.startswith('.') or dominio.endswith('.'):
             raise ValueError("E-mail inválido")
         return valor
 
