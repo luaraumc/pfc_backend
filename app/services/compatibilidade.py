@@ -1,10 +1,9 @@
 from typing import Any, Dict, List, Set, Tuple # tipos para anotações
 from sqlalchemy.orm import Session # sessões para interagir com o banco
-from app.models import Compatibilidade, UsuarioHabilidade, CarreiraHabilidade, Carreira,Habilidade # modelos de tabela definidos no arquivo models.py
-from app.schemas import CompatibilidadeBase, CompatibilidadeOut # schema de entrada e saída
+from app.models import UsuarioHabilidade, CarreiraHabilidade, Carreira,Habilidade # modelos de tabela definidos no arquivo models.py
 
 # Configuração padrão centralizada para evitar duplicação de literais
-DEFAULT_MIN_FREQ: int | None = None
+DEFAULT_MIN_FREQ: int | None = 3  # filtra habilidades com frequência >= 3 (exclui as que aparecem apenas 1 vez)
 DEFAULT_TAXA_COBERTURA: float = 1.0 #proporção do núcleo da carreira (100%)
 
 # Conjunto de IDs de habilidades que o usuário possui
@@ -138,7 +137,7 @@ def compatibilidade_carreiras_por_usuario(
     usuario_id: int,
     *,
     min_freq: int | None = DEFAULT_MIN_FREQ, # frequência mínima de CarreiraHabilidade a considerar
-    taxa_cobertura: float | None = DEFAULT_TAXA_COBERTURA, # proporção do núcleo da carreira a considerar (padrão 80%)
+    taxa_cobertura: float | None = DEFAULT_TAXA_COBERTURA, # proporção do núcleo da carreira a considerar
 ) -> List[Dict[str, Any]]:
 
     # Busca todas as carreiras e calcula compatibilidade

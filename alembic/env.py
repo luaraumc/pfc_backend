@@ -7,13 +7,33 @@ from alembic import context
 
 import os
 import sys
+from dotenv import load_dotenv
 
 # Pega o caminho absoluto até a pasta pfc_backend
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+load_dotenv()
+
+# Obter a URL do banco de dados
+def _get_db_url():
+    # Prioriza URL explícita
+    url = os.getenv("ALEMBIC_URL")
+    if url:
+        return url
+    # Constrói a URL a partir das variáveis do .env usadas pelo app
+    host = os.getenv("DB_HOST")
+    port = os.getenv("DB_PORT")
+    name = os.getenv("DB_NAME")
+    user = os.getenv("DB_USER")
+    pwd  = os.getenv("DB_PASSWORD")
+    if all([host, port, name, user, pwd]):
+        return f"postgresql+psycopg2://{user}:{pwd}@{host}:{port}/{name}"
+    raise RuntimeError("Configuração de banco ausente: defina ALEMBIC_URL ou DB_* no .env")
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+config.set_main_option("sqlalchemy.url", _get_db_url())
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

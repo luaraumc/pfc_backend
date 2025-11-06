@@ -1,6 +1,7 @@
-from pydantic import BaseModel # criação dos schemas
+from pydantic import BaseModel, field_validator # criação dos schemas e validação de campos
 from datetime import datetime # campos de data e hora
 from typing import List, Dict # tipos para listas e dicionários
+import re # expressões regulares para validação de senha e e-mail
 
 """
 Classes Base: representam os dados que serão enviados (POST). Não precisam dos campos autoincrement, pois são gerados pelo banco
@@ -41,6 +42,33 @@ class UsuarioBase(BaseModel):
     carreira_id: int | None = None # usuário admin não precisa de carreira
     curso_id: int | None = None # usuário admin não precisa de curso
 
+    @field_validator("email")
+    def validar_email(valor: str) -> str:
+        valor = valor.strip()
+        if "@" not in valor:
+            raise ValueError("E-mail inválido: deve conter '@'")
+        try:
+            dominio = valor.split("@", 1)[1].lower() # obtém o domínio após o '@'
+        except Exception:
+            raise ValueError("E-mail inválido")
+        if ".com" not in dominio:
+            raise ValueError("E-mail inválido: domínio deve conter '.com'")
+        return valor
+
+    @field_validator("senha")
+    def validar_senha(valor: str) -> str:
+        if len(valor) < 6:
+            raise ValueError("Senha deve ter no mínimo 6 caracteres")
+        if re.search(r"\s", valor):
+            raise ValueError("Senha não pode conter espaços")
+        if not re.search(r"[A-Z]", valor):
+            raise ValueError("Senha deve conter ao menos uma letra maiúscula")
+        if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>\/?\\|]", valor):
+            raise ValueError("Senha deve conter ao menos um caractere especial")
+        return valor
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
 class UsuarioOut(UsuarioBase):
     id: int
     criado_em: datetime
@@ -75,19 +103,6 @@ class ConhecimentoBase(BaseModel):
     nome: str
 
 class ConhecimentoOut(ConhecimentoBase):
-    id: int
-    atualizado_em: datetime
-
-    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
-
-# Schema de Compatibilidade
-class CompatibilidadeBase(BaseModel):
-    usuario_id: int
-    carreira_id: int
-    curso_id: int
-    compatibilidade: float
-
-class CompatibilidadeOut(CompatibilidadeBase):
     id: int
     atualizado_em: datetime
 
@@ -129,15 +144,6 @@ class VagaOut(VagaBase):
     carreira_nome: str | None = None
     
     model_config = {'from_attributes': True}
-
-
-# Schema de Vaga Completa
-class VagaCompletaOut(VagaOut):
-    habilidades_extraidas: list[str] = []
-    habilidades_criadas: list[str] = []
-    habilidades_ja_existiam: list[str] = []
-
-    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 
 # ===================== TABELAS RELACIONAIS =====================
@@ -203,6 +209,27 @@ class LoginSchema(BaseModel):
     email: str
     senha: str
 
+    @field_validator("email")
+    def validar_email_login(valor: str) -> str:
+        valor = valor.strip()
+        if "@" not in valor:
+            raise ValueError("E-mail inválido")
+        try:
+            dominio = valor.split("@", 1)[1].lower()
+        except Exception:
+            raise ValueError("E-mail inválido")
+        if ".com" not in dominio:
+            raise ValueError("E-mail inválido")
+        return valor
+
+    @field_validator("senha")
+    def validar_senha_login(valor: str) -> str:
+        if len(valor) < 6:
+            raise ValueError("Senha inválida")
+        if re.search(r"\s", valor):
+            raise ValueError("Senha inválida")
+        return valor
+
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 class AtualizarUsuarioSchema(BaseModel):
@@ -226,6 +253,20 @@ class ConfirmarNovaSenhaSchema(BaseModel):
     email: str
     codigo: str
     nova_senha: str
+
+    @field_validator("nova_senha")
+    def validar_nova_senha(valor: str) -> str:
+        if len(valor) < 6:
+            raise ValueError("Nova senha deve ter no mínimo 6 caracteres")
+        if re.search(r"\s", valor):
+            raise ValueError("Nova senha não pode conter espaços")
+        if not re.search(r"[A-Z]", valor):
+            raise ValueError("Nova senha deve conter ao menos uma letra maiúscula")
+        if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>\/?\\|]", valor):
+            raise ValueError("Nova senha deve conter ao menos um caractere especial")
+        return valor
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 class ItemSimples(BaseModel):
     id: int

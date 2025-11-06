@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
-from app.schemas import VagaBase, VagaOut, VagaCompletaOut
+from app.schemas import VagaBase, VagaOut
 from app.services.vaga import listar_vagas, criar_vaga, extrair_habilidades_vaga, confirmar_habilidades_vaga, remover_relacao_vaga_habilidade, excluir_vaga_decrementando # serviços relacionados à vaga
 from app.dependencies import pegar_sessao, requer_admin # cria sessões com o banco de dados, verifica o token e requer admin
 
