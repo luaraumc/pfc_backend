@@ -36,47 +36,6 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> VagaOut:
         "carreira_nome": nova_vaga.carreira.nome if nova_vaga.carreira else None,
     })
 
-# PREVIEW - Extrai habilidades da descrição da vaga sem salvar
-def extrair_habilidades_vaga(session: Session, vaga_id: int) -> list[dict]:
-    vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
-    if not vaga:
-        return []
-    # usa a versão atual da extração que aceita sessão e retorna apenas os nomes para o preview
-    itens = extrair_habilidades_descricao(vaga.descricao, session=session)
-    finais: list[dict] = []
-    vistos = set()
-    for item in itens:
-        nome = item.get("nome") if isinstance(item, dict) else str(item)
-        cat_sug = item.get("categoria_sugerida") if isinstance(item, dict) else None
-        chave = deduplicar(nome)
-        if chave not in vistos and nome:
-            vistos.add(chave)
-            # Verifica se a habilidade já existe no banco
-            habilidade_db = session.query(Habilidade).filter(Habilidade.nome.ilike(nome)).first()
-            habilidade_id = habilidade_db.id if habilidade_db else ""
-            # Se existir no banco, preferir a categoria atual do banco
-            if habilidade_db and habilidade_db.categoria_id:
-                categoria_id = habilidade_db.categoria_id
-                categoria_nome = session.query(Categoria.nome).filter(Categoria.id == habilidade_db.categoria_id).scalar() or ""
-            else:
-                # Caso contrário, tenta casar sugestão com categoria existente
-                categoria_id = ""
-                categoria_nome = ""
-                if cat_sug:
-                    cat_db = session.query(Categoria).filter(Categoria.nome.ilike(cat_sug)).first()
-                    if cat_db:
-                        categoria_id = cat_db.id
-                        categoria_nome = cat_db.nome
-            finais.append({
-                "nome": nome,
-                "habilidade_id": habilidade_id,
-                "categoria_sugerida": cat_sug,
-                "categoria_id": categoria_id,
-                "categoria_nome": categoria_nome,
-                "categoria": categoria_nome,
-            })
-    return finais
-
 # CONFIRMAR - Confirma lista final de habilidades para a vaga e associa na carreira
 def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finais: list) -> dict:
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
@@ -88,27 +47,28 @@ def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finai
     for item in (habilidades_finais or []):
         nome = item.get("nome") if isinstance(item, dict) else str(item)
         cat_sug = (item.get("categoria_sugerida") or None) if isinstance(item, dict) else None
-        chave = deduplicar(normalizar_habilidade(nome, session=session))
+        chave = deduplicar(nome)  # usa nome original para gerar chave de deduplicação
         categoria_por_chave[chave] = cat_sug
 
     vistos = set()
-    finais_norm: list[dict] = []  # cada item: { nome_norm, categoria_id?, habilidade_id? }
+    finais_norm: list[dict] = []  # cada item: { nome_editado, categoria_id?, habilidade_id? }
     for h in habilidades_finais:
         if isinstance(h, dict):
-            nome_raw = h.get("nome") or h.get("name") or ""
+            nome_editado = h.get("nome") or h.get("name") or ""  # preserva nome editado pelo usuário
             categoria_id_raw = h.get("categoria_id") or h.get("category_id") or ""
             habilidade_id_raw = h.get("habilidade_id") or h.get("skill_id") or ""
         else:
-            nome_raw = str(h)
+            nome_editado = str(h)
             categoria_id_raw = ""
             habilidade_id_raw = ""
-        nome_norm = normalizar_habilidade(nome_raw, session=session)
-        chave = deduplicar(nome_norm)
+        
+        # Usa nome editado para deduplicação, mas preserva o nome original
+        chave = deduplicar(nome_editado)
         if chave in vistos:
             continue
         vistos.add(chave)
         finais_norm.append({
-            "nome": nome_norm,
+            "nome": nome_editado.strip(),  # preserva nome editado, apenas remove espaços extras
             "categoria_id": categoria_id_raw,
             "habilidade_id": habilidade_id_raw,
         })
@@ -117,7 +77,7 @@ def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finai
     habilidades_ja_existiam = []
 
     for item in finais_norm:
-        nome_padronizado = item["nome"]
+        nome_editado = item["nome"]  # nome editado pelo usuário
         categoria_id_informada = item.get("categoria_id")
         habilidade_id_informada = item.get("habilidade_id")
 
@@ -125,12 +85,12 @@ def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finai
         if habilidade_id_informada:
             habilidade = session.query(Habilidade).filter(Habilidade.id == habilidade_id_informada).first()
         if not habilidade:
-            # Verifica por nome (case-insensitive)
-            habilidade = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_padronizado)).first()
+            # Verifica por nome (case-insensitive) usando o nome editado
+            habilidade = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_editado)).first()
 
         if not habilidade:
             # Usa a categoria sugerida pela IA para esta habilidade; se ausente, "categoria pendente"
-            chave = deduplicar(nome_padronizado)
+            chave = deduplicar(nome_editado)
             categoria_sugerida = categoria_por_chave.get(chave)
             categoria = None
             if categoria_id_informada:
@@ -144,23 +104,23 @@ def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finai
                     categoria = Categoria(nome="categoria pendente")
                     session.add(categoria)
                     session.flush()
-            habilidade = Habilidade(nome=nome_padronizado, categoria_id=categoria.id)
+            habilidade = Habilidade(nome=nome_editado, categoria_id=categoria.id)  # salva com nome editado
             session.add(habilidade)
             session.flush()
-            habilidades_criadas.append(nome_padronizado)
+            habilidades_criadas.append(nome_editado)
         else:
             # Atualiza nome/categoria se informado
-            if habilidade.nome.lower() != nome_padronizado.lower():
-                conflito = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_padronizado)).first()
+            if habilidade.nome.lower() != nome_editado.lower():
+                conflito = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_editado)).first()
                 if conflito and conflito.id != habilidade.id:
-                    raise ValueError(f"Já existe uma habilidade com o nome '{nome_padronizado}'.")
-                habilidade.nome = nome_padronizado
+                    raise ValueError(f"Já existe uma habilidade com o nome '{nome_editado}'.")
+                habilidade.nome = nome_editado  # atualiza com nome editado
             # Atualizar categoria se fornecida e existir
             if categoria_id_informada:
                 categoria_db = session.query(Categoria).filter(Categoria.id == categoria_id_informada).first()
                 if categoria_db:
                     habilidade.categoria_id = categoria_db.id
-            habilidades_ja_existiam.append(nome_padronizado)
+            habilidades_ja_existiam.append(nome_editado)
 
         # Associa à vaga (se ainda não existe a relação)
         existe_rel_vaga = session.query(VagaHabilidade).filter_by(
@@ -264,3 +224,49 @@ def excluir_vaga_decrementando(session: Session, vaga_id: int) -> bool:
     session.delete(vaga)
     session.commit()
     return True
+
+# PREVIEW - Extrai habilidades da descrição da vaga sem salvar as habilidades e relacioná-las com a carreira
+def extrair_habilidades_vaga(session: Session, vaga_id: int) -> list[dict]:
+    vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
+    if not vaga:
+        return []
+    # usa a versão atual da extração que aceita sessão e retorna apenas os nomes para o preview
+    itens = extrair_habilidades_descricao(vaga.descricao, session=session)
+    finais: list[dict] = []
+    vistos = set()
+    for item in itens:
+        nome_original = item.get("nome") if isinstance(item, dict) else str(item)
+        cat_sug = item.get("categoria_sugerida") if isinstance(item, dict) else None
+        chave = deduplicar(nome_original)
+        if chave not in vistos and nome_original:
+            vistos.add(chave)
+            # Verifica se a habilidade já existe no banco usando nome normalizado para busca
+            nome_normalizado = normalizar_habilidade(nome_original, session=session)
+            habilidade_db = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_normalizado)).first()
+            habilidade_id = habilidade_db.id if habilidade_db else ""
+            # Se existir no banco, preferir a categoria atual do banco e o nome do banco
+            if habilidade_db and habilidade_db.categoria_id:
+                categoria_id = habilidade_db.categoria_id
+                categoria_nome = session.query(Categoria.nome).filter(Categoria.id == habilidade_db.categoria_id).scalar() or ""
+                # Se existe no banco, usa o nome do banco (que pode estar editado/corrigido)
+                nome_para_preview = habilidade_db.nome
+            else:
+                # Caso contrário, tenta casar sugestão com categoria existente
+                categoria_id = ""
+                categoria_nome = ""
+                if cat_sug:
+                    cat_db = session.query(Categoria).filter(Categoria.nome.ilike(cat_sug)).first()
+                    if cat_db:
+                        categoria_id = cat_db.id
+                        categoria_nome = cat_db.nome
+                # Se não existe no banco, usa o nome normalizado como sugestão inicial
+                nome_para_preview = nome_normalizado
+            finais.append({
+                "nome": nome_para_preview,  # nome para edição (do banco se existir, senão normalizado)
+                "habilidade_id": habilidade_id,
+                "categoria_sugerida": cat_sug,
+                "categoria_id": categoria_id,
+                "categoria_nome": categoria_nome,
+                "categoria": categoria_nome,
+            })
+    return finais

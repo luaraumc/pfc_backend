@@ -72,19 +72,6 @@ class Categoria(Base):
 	nome = Column(String(150), unique=True, nullable=False)
 	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 
-# Modelo da tabela "compatibilidade"
-class Compatibilidade(Base):
-	__tablename__ = 'compatibilidade'
-	id = Column(Integer, primary_key=True, index=True)
-	usuario_id = Column(Integer, ForeignKey('usuario.id', ondelete='SET NULL'), nullable=False)
-	carreira_id = Column(Integer, ForeignKey('carreira.id', ondelete='SET NULL'), nullable=False)
-	curso_id = Column(Integer, ForeignKey('curso.id', ondelete='SET NULL'), nullable=False)
-	compatibilidade = Column(Numeric(5,2), nullable=False)
-	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
-	usuario = relationship('Usuario', backref='compatibilidades')
-	carreira = relationship('Carreira', backref='compatibilidades')
-	curso = relationship('Curso', backref='compatibilidades')
-
 # Modelo da tabela "codigo_autenticacao" (códigos multiuso: recuperação de senha, atualização de senha, exclusão de conta)
 class CodigoAutenticacao(Base):
 	__tablename__ = "codigo_autenticacao"
@@ -117,7 +104,6 @@ class Vaga(Base):
 	titulo = Column(String(200), nullable=False)  # removido unique=True
 	descricao = Column(Text, nullable=False, unique=True)
 	criado_em = Column(DateTime, server_default=func.now(), nullable=False)
-	atualizado_em = Column(DateTime, server_default=func.now(), nullable=False)
 	carreira_id = Column(Integer, ForeignKey("carreira.id", ondelete="SET NULL"), nullable=True)
 	carreira = relationship("Carreira", backref="vagas")
 

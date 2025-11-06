@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
+from fastapi import APIRouter, Depends, HTTPException, Body # cria dependências e exceções HTTP
 from datetime import datetime # para comparar expiração de códigos
 from app.services.usuario import atualizar_usuario, buscar_usuario_por_id, deletar_usuario, atualizar_senha # serviços relacionados ao usuário
 from app.services.logExclusao import registrar_exclusao_usuario # serviço para auditoria de exclusões
@@ -12,6 +12,8 @@ from app.models import Usuario # modelo de tabela definido no arquivo models.py
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from app.config import bcrypt_context # configuração de criptografia
 from app.schemas import UsuarioOut, AtualizarUsuarioSchema, UsuarioHabilidadeBase, UsuarioHabilidadeOut, ConfirmarNovaSenhaSchema, ConfirmarCodigoSchema, SolicitarCodigoSchema # schemas para validação de dados
+from pydantic import ValidationError
+from app.utils.errors import raise_validation_http_exception
 
 # Inicializa o router
 usuarioRouter = APIRouter(prefix="/usuario", tags=["usuario"])
@@ -51,10 +53,16 @@ async def solicitar_codigo_atualizar(payload: SolicitarCodigoSchema, session: Se
 @usuarioRouter.put("/atualizar-senha/{usuario_id}")
 async def atualizar_senha_route(
     usuario_id: int,
-    dados: ConfirmarNovaSenhaSchema,
+    dados_payload: dict = Body(...),
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    # valida payload usando Pydantic para capturar mensagens legíveis
+    try:
+        dados = ConfirmarNovaSenhaSchema.model_validate(dados_payload)
+    except ValidationError as e:
+        raise_validation_http_exception(e)
+
     usuario_db = buscar_usuario_por_id(session, usuario_id) # busca usuário no banco de dados
     if not usuario_db or usuario_db.email != dados.email:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")

@@ -77,7 +77,7 @@ def carregar_padroes_db(session: Session | None) -> list[tuple[re.Pattern, str]]
     if session is None:
         return []
     try:
-        regras = session.query(Normalizacao).order_by(Normalizacao.id.asc()).all()
+        regras = session.query(Normalizacao).order_by(Normalizacao.id.asc()).all()  # Consulta a tabela de normalização
         return [(re.compile(r.nome, re.IGNORECASE), r.nome_padronizado) for r in regras]
     except Exception:
         return []
@@ -107,7 +107,7 @@ def normalizar_habilidade(habilidade: str, session: Session | None = None) -> st
 
     # Aplica padrões de normalização
     # 1) Tenta com padrões vindos do banco
-    for regex, valor in carregar_padroes_db(session) or []:
+    for regex, valor in carregar_padroes_db(session) or []:  # AQUI os padrões são aplicados
         if regex.fullmatch(habilidade):
             return valor  # valor já está com acento e capitalização correta
 
@@ -143,7 +143,7 @@ def extrair_habilidades_descricao(descricao: str, session: Session | None = None
             model="gpt-4.1",
             input=prompt,
             temperature=0.15, # baixo para respostas mais consistentes
-            max_output_tokens=500
+            max_output_tokens=1000
         )
         texto_completo = ""
         # Extrai o texto da resposta

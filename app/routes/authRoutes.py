@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Body # cria dependências e exceções HTTP
 from fastapi.security import OAuth2PasswordRequestForm # esquema de segurança para autenticação
 from app.services.usuario import criar_usuario # serviços relacionados ao usuário
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
@@ -12,6 +12,8 @@ from datetime import datetime, timedelta, timezone # lidar com datas e horas | m
 from dotenv import load_dotenv # carregar as variáveis de ambiente
 import os # interagir com o sistema operacional
 import resend # enviar emails
+from pydantic import ValidationError
+from app.utils.errors import raise_validation_http_exception
 
 load_dotenv()
 
@@ -20,10 +22,16 @@ authRouter = APIRouter(prefix="/auth", tags=["auth"])
 
 # Cadastrar usuário
 @authRouter.post("/cadastro")
-async def cadastro(usuario_schema: UsuarioBase, session: Session = Depends(pegar_sessao)): # passa como parametro os dados que o usuário tem que inserir ao acessar a rota e a sessão do banco de dados
+async def cadastro(usuario_payload: dict = Body(...), session: Session = Depends(pegar_sessao)):
+    # valida payload usando Pydantic para capturar mensagens legíveis
+    try:
+        usuario_schema = UsuarioBase.model_validate(usuario_payload)
+    except ValidationError as e:
+        raise_validation_http_exception(e)
+
     usuario = session.query(Usuario).filter(Usuario.email == usuario_schema.email).first() # verifica se o email já existe no banco de dados. (first pega o primeiro resultado que encontrar, se encontrar algum resultado, significa que o email já existe)
     if usuario:
-        raise HTTPException(status_code=400, detail="Email já cadastrado") # se ja existir um usuario com esse email, retorna um erro
+        raise HTTPException(status_code=400, detail="Email já cadastrado.") # se ja existir um usuario com esse email, retorna um erro
 
     # Normaliza 0 -> None para evitar violação de FK
     if usuario_schema.carreira_id == 0:
@@ -34,56 +42,118 @@ async def cadastro(usuario_schema: UsuarioBase, session: Session = Depends(pegar
     # Se não é admin, exige carreira e curso válidos
     if not usuario_schema.admin:
         if usuario_schema.carreira_id is None or usuario_schema.curso_id is None:
-            raise HTTPException(status_code=400, detail="carreira_id e curso_id são obrigatórios para usuários não-admin")
+            raise HTTPException(status_code=400, detail="Carreira e Curso são obrigatórios.")
         if session.get(Carreira, usuario_schema.carreira_id) is None:
-            raise HTTPException(status_code=400, detail="Carreira inexistente")
+            raise HTTPException(status_code=400, detail="Carreira inexistente.")
         if session.get(Curso, usuario_schema.curso_id) is None:
-            raise HTTPException(status_code=400, detail="Curso inexistente")
+            raise HTTPException(status_code=400, detail="Curso inexistente.")
 
     usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) # criptografa a senha do usuário
     novo_usuario = criar_usuario(session, usuario_schema) # se não existir, cria o usuário
-    return {"message": f"Usuário cadastrado com sucesso {novo_usuario.nome}"}
+    return {"message": f"Usuário cadastrado com sucesso! Redirecionando..."}
 
 # Login de usuário
 @authRouter.post("/login")
-async def login(login_schema: LoginSchema, session: Session = Depends(pegar_sessao)):
+async def login(login_payload: dict = Body(...), session: Session = Depends(pegar_sessao), response: Response = None):
+    try:
+        login_schema = LoginSchema.model_validate(login_payload)
+    except ValidationError as e:
+        raise_validation_http_exception(e)
+
     usuario=autenticar_usuario(login_schema.email, login_schema.senha, session) # autentica o usuário
     if not usuario:
-        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos")
+        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
     else:
         access_token = criar_token(usuario.id) # cria o token de acesso
-        refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7)) # cria o token de atualização (7 dias)
+        # cria refresh token e seta em cookie HttpOnly (browser enviará automaticamente em requests subsequentes)
+        refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7)) # 7 dias
+
+        # seta cookie HttpOnly para cross-site (SameSite=None; Secure)
+        if response is not None:
+            response.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,
+                secure=True,
+                samesite="None",
+                max_age=7*24*3600,
+                path="/",
+            )
+
+        # retorna apenas o access token; refresh token é enviado em cookie HttpOnly
         return {
             "access_token": access_token,
-            "refresh_token": refresh_token,
             "token_type": "Bearer"
-            }
+        }
 
 # Usar o refresh token para obter um novo access token - AUTENTICADA
-@authRouter.get("/refresh")
-async def usar_refresh_token(usuario: Usuario = Depends(verificar_token)): # verifica o token de acesso
-    access_token = criar_token(usuario.id) # cria um novo token de acesso
-    return {
-        "access_token": access_token,
-        "token_type": "Bearer"
-        }
+@authRouter.post("/refresh")
+async def usar_refresh_token(request: Request, response: Response, session: Session = Depends(pegar_sessao)):
+    # Lê refresh token de cookie HttpOnly
+    refresh = request.cookies.get("refresh_token")
+    if not refresh:
+        raise HTTPException(status_code=401, detail="Sem refresh token")
+
+    try:
+        payload = jwt.decode(refresh, kEY_CRYPT, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token inválido")
+
+    usuario = session.get(Usuario, user_id)
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    # cria novo access token
+    access_token = criar_token(usuario.id)
+
+    # opcional: rotacionar refresh token
+    try:
+        new_refresh = criar_token(usuario.id, duracao_token=timedelta(days=7))
+        # atualiza cookie de refresh para cross-site
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh,
+            httponly=True,
+            secure=True,
+            samesite="None",
+            max_age=7*24*3600,
+            path="/",
+        )
+    except Exception:
+        pass
+
+    return {"access_token": access_token, "token_type": "Bearer"}
+
+
+# Logout - remove refresh cookie
+@authRouter.post("/logout")
+async def logout(response: Response):
+    # remove o cookie de refresh
+    response.delete_cookie(key="refresh_token", path="/")
+    return {"message": "Logout realizado"}
 
 # Solicitar código de verificação por email (motivo: recuperacao_senha)
 @authRouter.post("/solicitar-codigo/recuperar-senha")
 async def solicitar_codigo_recuperar(payload: SolicitarCodigoSchema, session: Session = Depends(pegar_sessao)):
     usuario = session.query(Usuario).filter(Usuario.email == payload.email).first()
     if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     _gerar_codigo(session, usuario, "recuperacao_senha")
-    return {"message": "Código enviado para recuperação de senha"}
+    return {"message": "Código enviado para recuperação de senha."}
 
 # Confirmar código + recuperar senha
 @authRouter.post("/recuperar-senha")  # mantido nome para compatibilidade de frontend
-async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Session = Depends(pegar_sessao)):
+async def confirmar_nova_senha(nova_senha_payload: dict = Body(...), session: Session = Depends(pegar_sessao)):
+    try:
+        nova_senha = ConfirmarNovaSenhaSchema.model_validate(nova_senha_payload)
+    except ValidationError as e:
+        raise_validation_http_exception(e)
+
     # Busca último código válido para motivos de senha
     usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first()
     if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
     rec = (
         session.query(CodigoAutenticacao)
@@ -92,16 +162,16 @@ async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Se
         .first()
     )
     if not rec:
-        raise HTTPException(status_code=404, detail="Nenhum código de verificação gerado para este email")
+        raise HTTPException(status_code=404, detail="Nenhum código de verificação gerado para este email.")
     if rec.codigo_expira_em < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="Código expirado")
+        raise HTTPException(status_code=400, detail="Código expirado.")
     if not bcrypt_context.verify(nova_senha.codigo, rec.codigo_recuperacao):
-        raise HTTPException(status_code=400, detail="Código inválido")
+        raise HTTPException(status_code=400, detail="Código inválido.")
 
     usuario.senha = bcrypt_context.hash(nova_senha.nova_senha)
     session.delete(rec) # remove o código usado
     session.commit()
-    return {"detail": "Senha atualizada com sucesso"}
+    return {"detail": "Senha atualizada com sucesso."}
 
 # ======================== FUNÇÕES AUXILIARES =======================
 
