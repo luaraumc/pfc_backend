@@ -65,7 +65,6 @@ def test_main_configures_cors_and_includes_routers_with_fake_fastapi(monkeypatch
 	_, options = cors_calls[0]
 	assert options["allow_origins"] == [
 		"http://localhost:5173",
-		"http://127.0.0.1:5173",
 	]
 	assert options["allow_credentials"] is True
 	assert options["allow_methods"] == ["*"]

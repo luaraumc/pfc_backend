@@ -3,7 +3,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Define variáveis de ambiente mínimas antes de importar módulos da app
+# Define variáveis de ambiente
 os.environ.setdefault("KEY_CRYPT", "test-key")
 os.environ.setdefault("ALGORITHM", "HS256")
 os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")

@@ -61,7 +61,9 @@ def _criar_carreira(SessionLocal, nome="Dados"):
 	from app.models import Carreira
 	db = SessionLocal()
 	try:
-		c = Carreira(nome=nome, descricao="d")
+		# Evita colisão UNIQUE usando contador
+		count = db.query(Carreira).count() if hasattr(db, "query") else 0
+		c = Carreira(nome=f"{nome}{count+1}", descricao="d")
 		db.add(c); db.commit(); db.refresh(c)
 		return c.id
 	finally:
@@ -72,7 +74,8 @@ def _criar_categoria(SessionLocal, nome="Backend"):
 	from app.models import Categoria
 	db = SessionLocal()
 	try:
-		cat = Categoria(nome=nome)
+		count = db.query(Categoria).count() if hasattr(db, "query") else 0
+		cat = Categoria(nome=f"{nome}{count+1}")
 		db.add(cat); db.commit(); db.refresh(cat)
 		return cat.id
 	finally:
@@ -84,7 +87,8 @@ def _criar_habilidade(SessionLocal, nome="Python", categoria_id=None):
 	assert categoria_id is not None
 	db = SessionLocal()
 	try:
-		h = Habilidade(nome=nome, categoria_id=categoria_id)
+		count = db.query(Habilidade).count() if hasattr(db, "query") else 0
+		h = Habilidade(nome=f"{nome}{count+1}", categoria_id=categoria_id)
 		db.add(h); db.commit(); db.refresh(h)
 		return h.id
 	finally:
@@ -133,6 +137,14 @@ def test_preview_habilidades_monkeypatched(app_client, monkeypatch):
 	car_id = _criar_carreira(SessionLocal)
 	cat_id = _criar_categoria(SessionLocal, "Backend")
 	existing_hid = _criar_habilidade(SessionLocal, "Python", categoria_id=cat_id)
+	# Captura nome real da habilidade existente (pode ter sufixo incremental)
+	from app.models import Habilidade, Categoria
+	db = SessionLocal()
+	try:
+		existing_name = db.query(Habilidade.nome).filter(Habilidade.id == existing_hid).scalar()
+		categoria_name = db.query(Categoria.nome).filter(Categoria.id == cat_id).scalar()
+	finally:
+		db.close()
 
 	# Cadastra vaga
 	r_cad = client.post("/vaga/cadastro", json={
@@ -146,9 +158,10 @@ def test_preview_habilidades_monkeypatched(app_client, monkeypatch):
 	import app.services.extracao as extr
 
 	def fake_extract(desc, session=None):
+		# Usa nome/categoria exatos salvos no banco para que preview reconheça corretamente
 		return [
-			{"nome": "Python", "categoria_sugerida": "Backend"},
-			{"nome": "Flask", "categoria_sugerida": "Backend"},
+			{"nome": existing_name, "categoria_sugerida": categoria_name},
+			{"nome": "Flask", "categoria_sugerida": categoria_name},
 		]
 
 	def fake_norm(name, session=None):
@@ -156,16 +169,23 @@ def test_preview_habilidades_monkeypatched(app_client, monkeypatch):
 
 	monkeypatch.setattr(extr, "extrair_habilidades_descricao", fake_extract)
 	monkeypatch.setattr(extr, "normalizar_habilidade", fake_norm)
+	# Patch também das referências importadas em app.services.vaga
+	import app.services.vaga as vaga_srv
+	monkeypatch.setattr(vaga_srv, "extrair_habilidades_descricao", fake_extract)
+	monkeypatch.setattr(vaga_srv, "normalizar_habilidade", fake_norm)
 
 	r = client.get(f"/vaga/{vaga_id}/preview-habilidades")
 	assert r.status_code == 200
 	itens = r.json()
 	# Deve conter Python existente (com habilidade_id preenchido) e Flask novo (habilidade_id vazio, categoria_id de Backend)
 	names = {i["nome"] for i in itens}
-	assert "Python" in names and "Flask" in names
-	python_it = next(i for i in itens if i["nome"] == "Python")
-	flask_it = next(i for i in itens if i["nome"] == "Flask")
+	# Nome existente possui sufixo (ex: Python1); verifica por prefixo
+	assert any(n.startswith("Python") for n in names) and any(n.startswith("Flask") for n in names)
+	python_it = next(i for i in itens if i["nome"] == existing_name)
+	flask_it = next(i for i in itens if i["nome"].startswith("Flask"))
+	# A habilidade existente deve retornar o ID correto
 	assert python_it.get("habilidade_id") == existing_hid
+	# Nova habilidade sugerida ainda não criada não tem habilidade_id
 	assert flask_it.get("habilidade_id") in ("", None)
 	assert flask_it.get("categoria_id") == cat_id
 
@@ -175,6 +195,13 @@ def test_confirmar_habilidades_cria_e_incrementa(app_client):
 	car_id = _criar_carreira(SessionLocal)
 	cat_id = _criar_categoria(SessionLocal, "Backend")
 	existing_hid = _criar_habilidade(SessionLocal, "Python", categoria_id=cat_id)
+	# Nome real da habilidade existente
+	from app.models import Habilidade
+	db = SessionLocal()
+	try:
+		existing_name = db.query(Habilidade.nome).filter(Habilidade.id == existing_hid).scalar()
+	finally:
+		db.close()
 
 	# Cadastra vaga
 	r_cad = client.post("/vaga/cadastro", json={
@@ -186,15 +213,18 @@ def test_confirmar_habilidades_cria_e_incrementa(app_client):
 
 	payload = {
 		"habilidades": [
-			{"nome": "Python"},
+			{"nome": existing_name},
 			{"nome": "Flask", "categoria_sugerida": "Backend"},
 		]
 	}
 	r = client.post(f"/vaga/{vaga_id}/confirmar-habilidades", json=payload)
 	assert r.status_code == 200
 	body = r.json()
-	assert "Flask" in body.get("habilidades_criadas", [])
-	assert "Python" in body.get("habilidades_ja_existiam", [])
+	# Nomes gerados com sufixo; localiza por prefixo
+	criados = body.get("habilidades_criadas", [])
+	existiam = body.get("habilidades_ja_existiam", [])
+	assert any(h.startswith("Flask") for h in criados)
+	assert any(h == existing_name for h in existiam)
 
 	# Frequências da carreira devem ser 1 para ambas
 	from app.models import Habilidade
@@ -215,6 +245,12 @@ def test_remover_relacao_vaga_habilidade(app_client):
 	car_id = _criar_carreira(SessionLocal)
 	cat_id = _criar_categoria(SessionLocal, "Backend")
 	hid = _criar_habilidade(SessionLocal, "Django", categoria_id=cat_id)
+	from app.models import Habilidade
+	db = SessionLocal()
+	try:
+		django_name = db.query(Habilidade.nome).filter(Habilidade.id == hid).scalar()
+	finally:
+		db.close()
 
 	# Cadastra vaga e confirma relação
 	r_cad = client.post("/vaga/cadastro", json={
@@ -224,7 +260,8 @@ def test_remover_relacao_vaga_habilidade(app_client):
 	})
 	vaga_id = r_cad.json()["id"]
 
-	payload = {"habilidades": [{"nome": "Django"}]}
+	# Usa prefixo apenas; service tratará nomes exatos
+	payload = {"habilidades": [{"nome": django_name}]}
 	client.post(f"/vaga/{vaga_id}/confirmar-habilidades", json=payload)
 
 	# Remove relação

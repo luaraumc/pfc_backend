@@ -1,5 +1,3 @@
-
-
 """
 Testes do módulo app.dependencies
 

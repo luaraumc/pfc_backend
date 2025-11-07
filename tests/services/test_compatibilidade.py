@@ -126,7 +126,8 @@ def test_compatibilidade_parcial_sem_filtros(session):
     # Usuário possui apenas Python
     vincula_usuario_habilidade(session, usuario.id, h1.id)
 
-    res = calcular_compatibilidade_usuario_carreira(session, usuario.id, carreira.id)
+    # Para incluir todas as frequências (inclui 2), desabilita filtro default (min_freq=None)
+    res = calcular_compatibilidade_usuario_carreira(session, usuario.id, carreira.id, min_freq=None)
     # percentual = 100 * 3 / (3+2) = 60.0
     assert res["percentual"] == 60.0
     assert res["peso_coberto"] == 3.0
@@ -178,7 +179,8 @@ def test_taxa_cobertura_usa_nucleo(session):
 
     # taxa_cobertura = 0.6 -> núcleo precisa 6.0 peso. Ordenando: 5,3,2 -> núcleo {React,Node} -> peso núcleo = 8
     # usuário possui Node (3) dentro do núcleo -> percentual = 100 * 3 / 8 = 37.5
-    res = calcular_compatibilidade_usuario_carreira(session, usuario.id, carreira.id, taxa_cobertura=0.6)
+    # Desabilita filtro de frequência para manter total=10 no núcleo
+    res = calcular_compatibilidade_usuario_carreira(session, usuario.id, carreira.id, taxa_cobertura=0.6, min_freq=None)
     assert res["peso_total"] == 10.0
     assert res["peso_coberto"] == 3.0
     assert res["percentual"] == round(100.0 * (3.0 / 8.0), 2)
@@ -206,7 +208,8 @@ def test_compatibilidade_carreiras_por_usuario_ordenacao(session):
     # usuário tem apenas H1 -> compat A = 100; compat B = 100 * 2/4 = 50
     vincula_usuario_habilidade(session, usuario.id, h1.id)
 
-    resultados = compatibilidade_carreiras_por_usuario(session, usuario.id)
+    # Desabilita filtro para considerar H1(2) e H2(2) na carreira B
+    resultados = compatibilidade_carreiras_por_usuario(session, usuario.id, min_freq=None)
     assert len(resultados) == 2
     assert resultados[0]["carreira_nome"] == "A"
     assert resultados[1]["carreira_nome"] == "B"

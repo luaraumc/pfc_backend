@@ -129,8 +129,9 @@ def test_cadastro_nao_admin_sem_carreira_ou_curso_erro(app_client):
 		"curso_id": None,
 	}
 	r = client.post("/auth/cadastro", json=payload)
+	# Rota agora exige apenas Carreira obrigatória quando não admin
 	assert r.status_code == 400
-	assert r.json().get("detail") == "Carreira e Curso são obrigatórios."
+	assert r.json().get("detail") == "Carreira é obrigatória."
 
 
 def test_login_ok_e_incorreto(app_client):
@@ -159,7 +160,8 @@ def test_login_ok_e_incorreto(app_client):
 	# Login incorreto
 	r2 = client.post("/auth/login", json={"email": "bel@empresa.com", "senha": "errada"})
 	assert r2.status_code == 400
-	assert r2.json().get("detail") == "E-mail ou senha incorretos"
+	# Mensagem na rota possui ponto final
+	assert r2.json().get("detail") == "E-mail ou senha incorretos."
 
 
 def test_refresh_e_logout(app_client):
@@ -175,11 +177,18 @@ def test_refresh_e_logout(app_client):
 		"carreira_id": carreira_id,
 		"curso_id": curso_id,
 	})
-	client.post("/auth/login", json={"email": "cic@empresa.com", "senha": "S3nh@Ok!"})
+	login_resp = client.post("/auth/login", json={"email": "cic@empresa.com", "senha": "S3nh@Ok!"})
+	# Em ambiente de teste HTTP a cookie Secure pode não ser armazenada automaticamente pelo TestClient
+	if client.cookies.get("refresh_token") is None:
+		raw = login_resp.headers.get("set-cookie", "")
+		if "refresh_token=" in raw:
+			val = raw.split("refresh_token=", 1)[1].split(";", 1)[0]
+			client.cookies.set("refresh_token", val)
 	assert client.cookies.get("refresh_token") is not None
 
-	# Usa refresh
-	r = client.post("/auth/refresh")
+	# Usa refresh: envia cookie explicitamente para evitar problemas com flag Secure
+	refresh_val = client.cookies.get("refresh_token")
+	r = client.post("/auth/refresh", cookies={"refresh_token": refresh_val})
 	assert r.status_code == 200
 	data = r.json()
 	assert data.get("access_token") and data.get("token_type") == "Bearer"

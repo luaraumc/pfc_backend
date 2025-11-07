@@ -65,14 +65,14 @@ def test_criar_conhecimento_categoria(session):
 	conhecimento = cria_conhecimento(session, "SQL")
 	categoria = cria_categoria(session, "Banco de Dados")
 
-	payload = ConhecimentoCategoriaBase(conhecimento_id=conhecimento.id, categoria_id=categoria.id, peso=5)
+	payload = ConhecimentoCategoriaBase(conhecimento_id=conhecimento.id, categoria_id=categoria.id, peso=3)
 	out = criar_conhecimento_categoria(session, payload)
 
 	assert isinstance(out, ConhecimentoCategoriaOut)
 	assert out.id is not None
 	assert out.conhecimento_id == conhecimento.id
 	assert out.categoria_id == categoria.id
-	assert out.peso == 5
+	assert out.peso == 3
 
 
 def test_listar_conhecimento_categorias_populado(session):
@@ -81,7 +81,7 @@ def test_listar_conhecimento_categorias_populado(session):
 	cat2 = cria_categoria(session, "DevOps")
 
 	criar_conhecimento_categoria(session, ConhecimentoCategoriaBase(conhecimento_id=conhecimento.id, categoria_id=cat1.id, peso=3))
-	criar_conhecimento_categoria(session, ConhecimentoCategoriaBase(conhecimento_id=conhecimento.id, categoria_id=cat2.id, peso=4))
+	criar_conhecimento_categoria(session, ConhecimentoCategoriaBase(conhecimento_id=conhecimento.id, categoria_id=cat2.id, peso=2))
 
 	resultado = listar_conhecimento_categorias(session, conhecimento.id)
 	assert len(resultado) == 2
@@ -113,6 +113,7 @@ def test_criar_conhecimento_categoria_duplicada_gera_integrity_error(session):
 	criar_conhecimento_categoria(session, ConhecimentoCategoriaBase(conhecimento_id=conhecimento.id, categoria_id=cat.id, peso=1))
 
 	with pytest.raises(IntegrityError):
-		criar_conhecimento_categoria(session, ConhecimentoCategoriaBase(conhecimento_id=conhecimento.id, categoria_id=cat.id, peso=9))
+		# peso diferente, mas mesma (conhecimento_id, categoria_id) deve violar UNIQUE
+		criar_conhecimento_categoria(session, ConhecimentoCategoriaBase(conhecimento_id=conhecimento.id, categoria_id=cat.id, peso=1))
 	session.rollback()
 

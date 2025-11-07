@@ -63,8 +63,11 @@ def _seed_conhecimento_categoria(SessionLocal):
 	from app.models import Conhecimento, Categoria
 	db = SessionLocal()
 	try:
-		con = Conhecimento(nome="Python")
-		cat = Categoria(nome="Backend")
+		# Usa sufixo incremental para evitar UNIQUE constraint em nome de Categoria
+		count = db.query(Categoria).count() if hasattr(db, "query") else 0
+		suf = count + 1
+		con = Conhecimento(nome=f"Python{suf}")
+		cat = Categoria(nome=f"Backend{suf}")
 		db.add_all([con, cat])
 		db.commit()
 		db.refresh(con)
@@ -117,7 +120,7 @@ def test_remover_relacao_fluxo(app_client):
 	client.post("/conhecimento-categoria/", json={
 		"conhecimento_id": conhecimento_id,
 		"categoria_id": categoria_id,
-		"peso": 5,
+		"peso": 2,
 	})
 
 	# Lista deve ter 1

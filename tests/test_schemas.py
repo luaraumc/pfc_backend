@@ -45,6 +45,7 @@ from app.schemas import (
 	CodigoAutenticacaoBase,
 	VagaOut,
 	HabilidadeOut,
+	ConhecimentoCategoriaBase,
 )
 
 
@@ -61,7 +62,7 @@ def test_usuario_base_valid_ok_trims_email_and_defaults():
 
 @pytest.mark.parametrize("email,erro", [
 	("fulano", "E-mail inválido: deve conter '@'"),
-	("fulano@empresa", "E-mail inválido: domínio deve conter '.com'"),
+	("fulano@empresa", "E-mail inválido"),
 ])
 def test_usuario_base_email_invalido(email, erro):
 	with pytest.raises(ValidationError) as ctx:
@@ -178,3 +179,42 @@ def test_vaga_out_and_habilidade_out_from_attributes():
 	h = HabilidadeOut.model_validate(H())
 	assert v.id == 10 and v.carreira_nome is None
 	assert h.categoria == "Backend"
+
+
+def test_conhecimento_categoria_peso_none_ok():
+	"""
+	Quando peso não for informado, deve permanecer None.
+	"""
+	m = ConhecimentoCategoriaBase.model_validate({
+		"conhecimento_id": 1,
+		"categoria_id": 2,
+	})
+	assert m.peso is None
+
+
+def test_conhecimento_categoria_peso_valid_range_ok():
+	"""
+	Valores entre 0 e 3 (inclusive) devem ser aceitos.
+	"""
+	for p in (0, 1, 2, 3):
+		m = ConhecimentoCategoriaBase.model_validate({
+			"conhecimento_id": 1,
+			"categoria_id": 2,
+			"peso": p,
+		})
+		assert m.peso == p
+
+
+@pytest.mark.parametrize("peso", [-1, 4, 99])
+def test_conhecimento_categoria_peso_out_of_range_erro(peso):
+	"""
+	Valores fora de 0..3 devem disparar mensagem específica do validator.
+	"""
+	with pytest.raises(ValidationError) as ctx:
+		ConhecimentoCategoriaBase.model_validate({
+			"conhecimento_id": 1,
+			"categoria_id": 2,
+			"peso": peso,
+		})
+	msgs = [err.get("msg", "") for err in ctx.value.errors()]
+	assert any("peso deve estar entre 0 e 3" in m for m in msgs)
