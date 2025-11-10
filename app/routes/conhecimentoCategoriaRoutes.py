@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.schemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut, ConhecimentoCategoriaAtualizar
+from app.schemas.conhecimentoCategoriaSchemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut, ConhecimentoCategoriaAtualizar
 from app.dependencies import pegar_sessao, requer_admin
 
 conhecimentoCategoriaRouter = APIRouter(prefix="/conhecimento-categoria", tags=["conhecimento_categoria"])

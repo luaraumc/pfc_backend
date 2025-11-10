@@ -1,8 +1,8 @@
 import hashlib # para hashing de emails
 from datetime import datetime # para timestamps
 from sqlalchemy.orm import Session # para interagir com o banco de dados
-from app.models.log_exclusoes import LogExclusao # modelo da tabela de log de exclusões
-from app.schemas import LogExclusaoBase, LogExclusaoOut # schemas para validação e saída
+from app.models.logExclusaoModels import LogExclusao # modelo da tabela de log de exclusões
+from app.schemas.logExclusaoSchemas import LogExclusaoBase, LogExclusaoOut # schemas para validação e saída
 
 # Gera um hash SHA-256 irreversível do email
 def gerar_email_hash(email: str) -> str:

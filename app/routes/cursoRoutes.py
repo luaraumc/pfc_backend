@@ -1,12 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends # cria dependências e exceções HTTP
 from app.services.curso import criar_curso, listar_cursos, buscar_curso_por_id, atualizar_curso, deletar_curso # serviços relacionados ao curso
 from app.services.cursoConhecimento import criar_curso_conhecimento, listar_curso_conhecimentos, remover_curso_conhecimento # serviços para manipular conhecimentos do curso
-from app.schemas import CursoBase, CursoOut, CursoConhecimentoOut # schemas para validação de dados
+from app.schemas.cursoSchemas import CursoBase, CursoOut # schemas para validação de dados
+from app.schemas.cursoConhecimentoSchemas import CursoConhecimentoBase, CursoConhecimentoOut # schemas para validação de dados
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
 from app.dependencies import pegar_sessao, verificar_token, requer_admin # cria sessões com o banco de dados, verifica o token e requer admin
-from app.models.curso import Curso # modelo de tabela definido no arquivo models.py
-from app.models.usuario import Usuario
-from app.models.rel_curso_conhecimento import CursoConhecimento
+from app.models.cursoModels import Curso # modelo de tabela definido no arquivo models.py
+from app.models.usuarioModels import Usuario
+from app.models.cursoConhecimentoModels import CursoConhecimento
 
 # Inicializa o router
 cursoRouter = APIRouter(prefix="/curso", tags=["curso"])
@@ -80,7 +81,6 @@ async def adicionar_conhecimento_curso_route(
     usuario: dict = Depends(requer_admin), # verifica se é um usuário permitido (admin)
     session: Session = Depends(pegar_sessao)
 ):
-    from app.schemas import CursoConhecimentoBase
     existe = session.query(CursoConhecimento).filter_by(curso_id=curso_id, conhecimento_id=conhecimento_id).first()
     if existe:
         raise HTTPException(status_code=400, detail="Conhecimento já adicionado ao curso")

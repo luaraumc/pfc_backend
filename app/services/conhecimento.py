@@ -1,5 +1,5 @@
-from app.models.conhecimento import Conhecimento # modelo de tabela 
-from app.schemas import ConhecimentoBase, ConhecimentoOut # schema de entrada e saída
+from app.models.conhecimentoModels import Conhecimento # modelo de tabela 
+from app.schemas.conhecimentoSchemas import ConhecimentoBase, ConhecimentoOut # schema de entrada e saída
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos

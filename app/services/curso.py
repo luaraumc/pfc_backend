@@ -1,5 +1,5 @@
-from app.models.curso import Curso # modelo de tabela
-from app.schemas import CursoBase, CursoOut # schema de entrada e saída
+from app.models.cursoModels import Curso # modelo de tabela
+from app.schemas.cursoSchemas import CursoBase, CursoOut # schema de entrada e saída
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos

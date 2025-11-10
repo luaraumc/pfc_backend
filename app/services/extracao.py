@@ -4,9 +4,8 @@ from typing import List # tipos para listas
 from sqlalchemy.orm import Session
 from openai import OpenAI # cliente OpenAI para chamadas à API
 import json, re, unicodedata # manipulação de JSON, expressões regulares e normalização de texto
-# modelos de tabela
-from app.models.normalizacao import Normalizacao
-from app.models.categoria import Categoria 
+from app.models.normalizacaoModels import Normalizacao
+from app.models.categoriaModels import Categoria 
 
 load_dotenv() # carrega chave da API do arquivo .env
 

@@ -1,10 +1,9 @@
 from typing import Any, Dict, List, Set, Tuple # tipos para anotações
 from sqlalchemy.orm import Session # sessões para interagir com o banco
-# modelos da tabela definidos na pasta models
-from app.models.rel_usuario_habilidade import UsuarioHabilidade
-from app.models.rel_carreira_habilidade import CarreiraHabilidade
-from app.models.carreira import Carreira
-from app.models.habilidade import Habilidade 
+from app.models.usuarioHabilidadeModels import UsuarioHabilidade
+from app.models.carreiraHabilidadeModels import CarreiraHabilidade
+from app.models.carreiraModels import Carreira
+from app.models.habilidadeModels import Habilidade 
 
 # Configuração padrão centralizada para evitar duplicação de literais
 DEFAULT_MIN_FREQ: int | None = 3  # filtra habilidades com frequência >= 3 (exclui as que aparecem apenas 1 vez)

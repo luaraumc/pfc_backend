@@ -1,5 +1,5 @@
-from app.models.carreira import Carreira # modelo de tabela 
-from app.schemas import CarreiraBase, CarreiraOut # schema de entrada e saída
+from app.models.carreiraModels import Carreira # modelo de tabela 
+from app.schemas.carreiraSchemas import CarreiraBase, CarreiraOut # schema de entrada e saída
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos

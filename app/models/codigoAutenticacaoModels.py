@@ -1,6 +1,5 @@
 from . import Base, Column, Integer, String, DateTime, ForeignKey, relationship, backref
 
-
 # Modelo da tabela "codigo_autenticacao" (códigos multiuso: recuperação de senha, atualização de senha, exclusão de conta)
 class CodigoAutenticacao(Base):
 	__tablename__ = "codigo_autenticacao"

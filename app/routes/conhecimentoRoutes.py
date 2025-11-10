@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.schemas import ConhecimentoBase, ConhecimentoOut # schemas para validação de dados
+from app.schemas.conhecimentoSchemas import ConhecimentoBase, ConhecimentoOut # schemas para validação de dados
 from app.services.conhecimento import criar_conhecimento, listar_conhecimentos, buscar_conhecimento_por_id , atualizar_conhecimento, deletar_conhecimento # serviços relacionados a conhecimento
 from app.dependencies import pegar_sessao, requer_admin # pegar a sessão do banco de dados, verificar o token e requerer admin
 

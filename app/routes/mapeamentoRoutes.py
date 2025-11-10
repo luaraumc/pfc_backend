@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.schemas import MapaOut # schemas para validação de dados
+from app.schemas.mapeamentoSchemas import MapaOut # schemas para validação de dados
 from app.dependencies import pegar_sessao # pegar a sessão do banco de dados
 from app.services.mapeamento import montar_mapa # serviço de mapeamento
 

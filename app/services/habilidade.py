@@ -1,7 +1,7 @@
 # modelo de tabela 
-from app.models.habilidade import Habilidade 
-from app.models.categoria import Categoria
-from app.schemas import HabilidadeBase, HabilidadeOut, HabilidadeAtualizar # schema de entrada e saída
+from app.models.habilidadeModels import Habilidade 
+from app.models.categoriaModels import Categoria
+from app.schemas.habilidadeSchemas import HabilidadeBase, HabilidadeOut, HabilidadeAtualizar # schema de entrada e saída
 from sqlalchemy.orm import joinedload
 
 """

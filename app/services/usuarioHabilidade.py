@@ -1,5 +1,5 @@
-from app.models.rel_usuario_habilidade import UsuarioHabilidade # modelo de tabela
-from app.schemas import UsuarioHabilidadeBase, UsuarioHabilidadeOut # schema de entrada e saída
+from app.models.usuarioHabilidadeModels import UsuarioHabilidade # modelo de tabela
+from app.schemas.usuarioHabilidadeSchemas import UsuarioHabilidadeBase, UsuarioHabilidadeOut # schema de entrada e saída
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos

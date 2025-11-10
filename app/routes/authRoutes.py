@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, Body #
 from fastapi.security import OAuth2PasswordRequestForm # esquema de segurança para autenticação
 from app.services.usuario import criar_usuario # serviços relacionados ao usuário
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.models.usuario import Usuario
-from app.models.codigo_autenticacao import CodigoAutenticacao
-from app.models.carreira import Carreira
-from app.models.curso import Curso
+from app.models.usuarioModels import Usuario
+from app.models.codigoAutenticacaoModels import CodigoAutenticacao
+from app.models.carreiraModels import Carreira
+from app.models.cursoModels import Curso
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from app.config import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, kEY_CRYPT # configuração de criptografia e autenticação
-from app.schemas import UsuarioBase, LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema # schemas para validação de dados
+from app.schemas.authSchemas import LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema # schemas para validação de dados
+from app.schemas.usuarioSchemas import UsuarioBase
 from jose import JWTError, jwt # trabalhar com JSON Web Token (JWT)
 from random import randint # gerar números aleatórios
 from datetime import datetime, timedelta, timezone # lidar com datas e horas | manipular durações de tempo | lidar com fusos horários
@@ -125,7 +126,6 @@ async def usar_refresh_token(request: Request, response: Response, session: Sess
         pass
 
     return {"access_token": access_token, "token_type": "Bearer"}
-
 
 # Logout - remove refresh cookie
 @authRouter.post("/logout")

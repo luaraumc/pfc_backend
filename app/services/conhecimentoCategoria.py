@@ -1,5 +1,5 @@
-from app.models.rel_conhecimento_categoria import ConhecimentoCategoria  # modelo de tabela 
-from app.schemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut, ConhecimentoCategoriaAtualizar  # schemas
+from app.models.conhecimentoCategoriaModels import ConhecimentoCategoria  # modelo de tabela 
+from app.schemas.conhecimentoCategoriaSchemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut, ConhecimentoCategoriaAtualizar  # schemas
 
 """
 model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
