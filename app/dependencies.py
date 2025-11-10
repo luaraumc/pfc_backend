@@ -31,7 +31,7 @@ def pegar_sessao():
 
 # Verificar o token JWT e obter o usuário autenticado
 def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depends(pegar_sessao)):
-    from app.models import Usuario
+    from app.models.usuario import Usuario
     try:
         dic_info = jwt.decode(token, kEY_CRYPT, ALGORITHM) # decodifica o token para extrair as informações
         id_usuario = int(dic_info.get("sub")) # extrai o id do usuário do token

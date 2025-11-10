@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, Body #
 from fastapi.security import OAuth2PasswordRequestForm # esquema de segurança para autenticação
 from app.services.usuario import criar_usuario # serviços relacionados ao usuário
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
-from app.models import Usuario, CodigoAutenticacao, Carreira, Curso
+from app.models.usuario import Usuario
+from app.models.codigo_autenticacao import CodigoAutenticacao
+from app.models.carreira import Carreira
+from app.models.curso import Curso
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from app.config import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, kEY_CRYPT # configuração de criptografia e autenticação
 from app.schemas import UsuarioBase, LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema # schemas para validação de dados

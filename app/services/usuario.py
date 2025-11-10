@@ -1,4 +1,4 @@
-from app.models import Usuario # modelo de tabela definido no arquivo models.py
+from app.models.usuario import Usuario # modelo de tabela
 from app.schemas import UsuarioBase, UsuarioOut # schema de entrada e saída
 
 """

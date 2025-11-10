@@ -4,7 +4,9 @@ from app.services.cursoConhecimento import criar_curso_conhecimento, listar_curs
 from app.schemas import CursoBase, CursoOut, CursoConhecimentoOut # schemas para validação de dados
 from sqlalchemy.orm import Session # pegar a sessão do banco de dados
 from app.dependencies import pegar_sessao, verificar_token, requer_admin # cria sessões com o banco de dados, verifica o token e requer admin
-from app.models import Curso, Usuario, CursoConhecimento # modelo de tabela definido no arquivo models.py
+from app.models.curso import Curso # modelo de tabela definido no arquivo models.py
+from app.models.usuario import Usuario
+from app.models.rel_curso_conhecimento import CursoConhecimento
 
 # Inicializa o router
 cursoRouter = APIRouter(prefix="/curso", tags=["curso"])

@@ -1,4 +1,10 @@
-from app.models import Vaga, Habilidade, VagaHabilidade, CarreiraHabilidade, Categoria # modelos de tabela definidos no arquivo models.py
+# modelos de tabela 
+from app.models.vaga import Vaga
+from app.models.habilidade import Habilidade
+from app.models.rel_vaga_habilidade import VagaHabilidade
+from app.models.rel_carreira_habilidade import CarreiraHabilidade
+from app.models.categoria import Categoria 
+# ------
 from app.schemas import VagaBase, VagaOut # schema de entrada e saída
 from sqlalchemy.orm import Session # manipular sessões do banco de dados
 from sqlalchemy.exc import IntegrityError # capturar erros de integridade do banco de dados

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException # cria dependências e exceções HTTP
 from sqlalchemy.orm import Session # cria sessões com o banco de dados
 from app.schemas import HabilidadeBase, HabilidadeOut, HabilidadeAtualizar  # <- importe HabilidadeBase
-from app.models import Categoria
+from app.models.categoria import Categoria
 from app.services.habilidade import listar_habilidades, buscar_habilidade_por_id, atualizar_habilidade, deletar_habilidade # serviços relacionados a habilidade
 from app.dependencies import pegar_sessao, requer_admin
 

@@ -1,4 +1,4 @@
-from app.models import UsuarioHabilidade # modelo de tabela definido no arquivo models.py
+from app.models.rel_usuario_habilidade import UsuarioHabilidade # modelo de tabela
 from app.schemas import UsuarioHabilidadeBase, UsuarioHabilidadeOut # schema de entrada e saída
 
 """

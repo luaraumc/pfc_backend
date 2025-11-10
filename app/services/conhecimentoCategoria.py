@@ -1,4 +1,4 @@
-from app.models import ConhecimentoCategoria  # modelo de tabela definido no arquivo models.py
+from app.models.rel_conhecimento_categoria import ConhecimentoCategoria  # modelo de tabela 
 from app.schemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut, ConhecimentoCategoriaAtualizar  # schemas
 
 """

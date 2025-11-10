@@ -1,4 +1,4 @@
-from app.models import Conhecimento # modelo de tabela definido no arquivo models.py
+from app.models.conhecimento import Conhecimento # modelo de tabela 
 from app.schemas import ConhecimentoBase, ConhecimentoOut # schema de entrada e saída
 
 """

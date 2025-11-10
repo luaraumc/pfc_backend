@@ -1,6 +1,7 @@
-from app.models import Habilidade # modelo de tabela definido no arquivo models.py
+# modelo de tabela 
+from app.models.habilidade import Habilidade 
+from app.models.categoria import Categoria
 from app.schemas import HabilidadeBase, HabilidadeOut, HabilidadeAtualizar # schema de entrada e saída
-from app.models import Categoria
 from sqlalchemy.orm import joinedload
 
 """

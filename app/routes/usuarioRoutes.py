@@ -5,10 +5,14 @@ from app.services.logExclusao import registrar_exclusao_usuario # serviço para 
 from app.services.usuarioHabilidade import criar_usuario_habilidade, listar_habilidades_usuario, remover_usuario_habilidade # serviços para manipular habilidades do usuário
 from app.services.compatibilidade import compatibilidade_carreiras_por_usuario, calcular_compatibilidade_usuario_carreira # serviços de compatibilidade
 from app.routes.authRoutes import enviar_email, _gerar_codigo # enviar email e gerar código de verificação
-from app.models import UsuarioHabilidade, CodigoAutenticacao # modelo de tabela definido no arquivo models.py
-from app.models import CarreiraHabilidade, Habilidade # para consultar habilidades da carreira
+# modelo de tabela
+from app.models.rel_usuario_habilidade import UsuarioHabilidade
+from app.models.codigo_autenticacao import CodigoAutenticacao 
+from app.models.rel_carreira_habilidade import CarreiraHabilidade
+from app.models.habilidade import Habilidade 
+from app.models.usuario import Usuario 
+
 from sqlalchemy.orm import Session# cria sessões com o banco de dados
-from app.models import Usuario # modelo de tabela definido no arquivo models.py
 from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
 from app.config import bcrypt_context # configuração de criptografia
 from app.schemas import UsuarioOut, AtualizarUsuarioSchema, UsuarioHabilidadeBase, UsuarioHabilidadeOut, ConfirmarNovaSenhaSchema, ConfirmarCodigoSchema, SolicitarCodigoSchema # schemas para validação de dados

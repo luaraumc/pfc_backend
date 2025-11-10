@@ -44,7 +44,13 @@ Notas
 from typing import Dict, List, Tuple  # Tipagens auxiliares
 from sqlalchemy.orm import Session  # Sessão do SQLAlchemy para executar consultas
 from sqlalchemy import func  # Funções SQL (sum, coalesce)
-from app.models import Curso, Carreira,  Habilidade,  CursoConhecimento,  ConhecimentoCategoria,  CarreiraHabilidade # modelos de tabela definidos no arquivo models.py
+# modelos de tabela
+from app.models.curso import Curso
+from app.models.carreira import Carreira
+from app.models.habilidade import Habilidade
+from app.models.rel_curso_conhecimento import CursoConhecimento
+from app.models.rel_conhecimento_categoria import ConhecimentoCategoria
+from app.models.rel_carreira_habilidade import  CarreiraHabilidade 
 
 # Carrega as listas de cursos e carreiras
 def carregar_listas_base(session: Session) -> Tuple[List[dict], List[dict]]:

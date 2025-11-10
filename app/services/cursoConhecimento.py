@@ -1,4 +1,4 @@
-from app.models import CursoConhecimento # modelo de tabela definido no arquivo models.py
+from app.models.rel_curso_conhecimento import CursoConhecimento # modelo de tabela 
 from app.schemas import CursoConhecimentoBase, CursoConhecimentoOut # schema de entrada e saída
 
 """

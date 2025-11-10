@@ -1,4 +1,4 @@
-from app.models import CarreiraHabilidade # modelo de tabela definido no arquivo models.py
+from app.models.rel_carreira_habilidade import CarreiraHabilidade # modelo de tabela
 from app.schemas import CarreiraHabilidadeBase, CarreiraHabilidadeOut # schema de entrada e saída
 
 """
