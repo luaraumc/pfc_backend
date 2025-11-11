@@ -1,6 +1,5 @@
 from . import Base, Column, Integer, String, Text, DateTime, func
 
-# Modelo tabela "carreira"
 class Carreira(Base):
 	__tablename__ = 'carreira'
 	id = Column(Integer, primary_key=True, index=True)

@@ -1,6 +1,5 @@
 from . import Base, Column, Integer, ForeignKey, UniqueConstraint
 
-# Modelo da tabela "usuario_habilidade"
 class UsuarioHabilidade(Base):
     __tablename__ = 'usuario_habilidade'
     id = Column(Integer, primary_key=True, index=True)

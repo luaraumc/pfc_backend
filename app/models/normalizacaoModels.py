@@ -1,6 +1,5 @@
 from . import Base, Column, Integer, String, DateTime, func
 
-# Modelo da tabela "normalizacao"
 class Normalizacao(Base):
     __tablename__ = 'normalizacao'
     id = Column(Integer, primary_key=True, index=True)

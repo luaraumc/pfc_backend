@@ -1,6 +1,6 @@
 from . import Base, Column, Integer, String, DateTime, func
 
-# Modelo da tabela "log_exclusoes"
+
 class LogExclusao(Base):
 	__tablename__ = 'log_exclusoes'
 	id = Column(Integer, primary_key=True, index=True)

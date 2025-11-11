@@ -1,7 +1,7 @@
 from . import Base, Column, Integer,String, Text, DateTime, func
 
 
-# Modelo da tabela "curso"
+
 class Curso(Base):
 	__tablename__ = 'curso'
 	id = Column(Integer, primary_key=True, index=True)

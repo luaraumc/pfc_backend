@@ -1,6 +1,6 @@
-from . import Base, Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint, func
+from . import Base, Column, Integer, String, DateTime, func
 
-# Modelo da tabela "conhecimento"
+
 class Conhecimento(Base):
     __tablename__ = 'conhecimento'
     id = Column(Integer, primary_key=True, index=True)
