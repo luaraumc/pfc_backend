@@ -1,38 +1,26 @@
-# modelo de tabela 
 from app.models.habilidadeModels import Habilidade 
 from app.models.categoriaModels import Categoria
-from app.schemas.habilidadeSchemas import HabilidadeBase, HabilidadeOut, HabilidadeAtualizar # schema de entrada e saída
+from app.schemas.habilidadeSchemas import HabilidadeBase, HabilidadeOut, HabilidadeAtualizar
 from sqlalchemy.orm import joinedload
 
-"""
-model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
-model_validate: converte um objeto em um schema Pydantic para retornar dados das funções CRUD no formato esperado pela API
-exclude_unset: gera um dicionário para atualizar apenas os campos que foram informados, sem sobrescrever os demais
-"""
-
-# ======================= CRUD =======================
-
-# READ - Lista todas as habilidades
 def listar_habilidades(session) -> list[HabilidadeOut]:
-    habilidades = session.query(Habilidade).all()  # Busca todas as habilidades no banco
-    return [HabilidadeOut.model_validate(habilidade) for habilidade in habilidades] # Converte cada habilidade para o schema de saída
+    """Busca todas as habilidades no banco de dados e retorna uma lista convertida para HabilidadeOut"""
+    habilidades = session.query(Habilidade).all()
+    return [HabilidadeOut.model_validate(habilidade) for habilidade in habilidades]
 
-# READ - Busca uma habilidade pelo id
 def buscar_habilidade_por_id(session, id: int) -> HabilidadeOut | None:
-    habilidade = session.query(Habilidade).filter(Habilidade.id == id).first()  # Busca a habilidade pelo id
-    return HabilidadeOut.model_validate(habilidade) if habilidade else None # Se encontrada converte para schema de saída, senão retorna None
+    """Busca uma habilidade específica pelo ID no banco de dados e retorna como HabilidadeOut ou None se não encontrada"""
+    habilidade = session.query(Habilidade).filter(Habilidade.id == id).first()
+    return HabilidadeOut.model_validate(habilidade) if habilidade else None
 
-# UPDATE / PUT - Atualiza os dados de uma habilidade existente usando schema
 def atualizar_habilidade(session, id: int, habilidade_data: HabilidadeAtualizar) -> HabilidadeOut | None:
-    habilidade = session.query(Habilidade).filter(Habilidade.id == id).first()  # Busca a habilidade pelo id
+    """Busca uma habilidade pelo ID, atualiza nome e/ou categoria se informados, salva no banco e retorna como HabilidadeOut"""
+    habilidade = session.query(Habilidade).filter(Habilidade.id == id).first()
     if habilidade:
-        # Atualiza os campos da habilidade com os dados recebidos
         data = habilidade_data.model_dump(exclude_unset=True)
-        # Atualiza nome (se enviado)
         nome = data.get('nome')
         if isinstance(nome, str) and nome.strip():
             habilidade.nome = nome.strip()
-        # Atualiza categoria (se enviado)
         cat_id = data.get('categoria_id')
         if cat_id is not None:
             categoria = session.query(Categoria).filter(Categoria.id == cat_id).first()
@@ -41,12 +29,11 @@ def atualizar_habilidade(session, id: int, habilidade_data: HabilidadeAtualizar)
             habilidade.categoria_id = categoria.id
         session.commit()
         session.refresh(habilidade)
-        return HabilidadeOut.model_validate(habilidade) # Retorna a habilidade atualizada como schema de saída
+        return HabilidadeOut.model_validate(habilidade)
     return None
 
-# DELETE - Remove uma habilidade pelo id
 def deletar_habilidade(session, id: int) -> HabilidadeOut | None:
-    # Carrega a habilidade com a relação de categoria eager-loaded para evitar DetachedInstanceError
+    """Busca uma habilidade pelo ID com relação de categoria carregada, remove do banco e retorna os dados removidos"""
     habilidade = (
         session.query(Habilidade)
         .options(joinedload(Habilidade.categoria_rel))
@@ -55,7 +42,7 @@ def deletar_habilidade(session, id: int) -> HabilidadeOut | None:
     )
     if habilidade:
         dto = HabilidadeOut.model_validate(habilidade)
-        session.delete(habilidade)  # Remove do banco
+        session.delete(habilidade)
         session.commit()
         return dto
     return None

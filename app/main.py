@@ -1,8 +1,8 @@
-from fastapi import FastAPI # classe FastAPI
-from fastapi.middleware.cors import CORSMiddleware # middleware para permitir requisições de diferentes origens
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 # python -m uvicorn app.main:app --reload
 
-app = FastAPI() # instancia da classe FastAPI
+app = FastAPI()
 
 # configurando o middleware CORS
 app.add_middleware(
@@ -13,7 +13,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# importando as rotas
 from app.routes.authRoutes import authRouter
 from app.routes.usuarioRoutes import usuarioRouter
 from app.routes.carreiraRoutes import carreiraRouter
@@ -24,7 +23,6 @@ from app.routes.vagaRoutes import vagaRouter
 from app.routes.conhecimentoCategoriaRoutes import conhecimentoCategoriaRouter
 from app.routes.mapeamentoRoutes import mapeamentoRouter
 
-# incluindo as rotas na aplicação FastAPI instanciada
 app.include_router(authRouter)
 app.include_router(usuarioRouter)
 app.include_router(carreiraRouter)

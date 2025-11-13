@@ -1,16 +1,15 @@
-from typing import Any, Dict, List, Set, Tuple # tipos para anotações
-from sqlalchemy.orm import Session # sessões para interagir com o banco
+from typing import Any, Dict, List, Set, Tuple
+from sqlalchemy.orm import Session
 from app.models.usuarioHabilidadeModels import UsuarioHabilidade
 from app.models.carreiraHabilidadeModels import CarreiraHabilidade
 from app.models.carreiraModels import Carreira
 from app.models.habilidadeModels import Habilidade 
 
-# Configuração padrão centralizada para evitar duplicação de literais
 DEFAULT_MIN_FREQ: int | None = 3  # filtra habilidades com frequência >= 3 (exclui as que aparecem apenas 1 vez)
 DEFAULT_TAXA_COBERTURA: float = 1.0 #proporção do núcleo da carreira (100%)
 
-# Conjunto de IDs de habilidades que o usuário possui
 def _ids_habilidades_do_usuario(session: Session, usuario_id: int) -> Set[int]:
+    """Retorna conjunto de IDs das habilidades que o usuário possui"""
     linhas = (
         session.query(UsuarioHabilidade.habilidade_id)
         .filter(UsuarioHabilidade.usuario_id == usuario_id)
@@ -18,7 +17,6 @@ def _ids_habilidades_do_usuario(session: Session, usuario_id: int) -> Set[int]:
     )
     return {habilidade_id for (habilidade_id,) in linhas} # extrai apenas os IDs das tuplas retornadas
 
-# Calcula a compatibilidade do usuário para uma carreira específica
 def calcular_compatibilidade_usuario_carreira(
     session: Session,
     usuario_id: int,
@@ -27,9 +25,7 @@ def calcular_compatibilidade_usuario_carreira(
     min_freq: int | None = DEFAULT_MIN_FREQ, # frequência mínima de CarreiraHabilidade a considerar
     taxa_cobertura: float | None = DEFAULT_TAXA_COBERTURA, # proporção do núcleo da carreira a considerar (padrão 80%)
 ) -> Dict[str, Any]:
-    
-    """
-    Calcula a compatibilidade (0 a 100) do usuário para uma carreira específica, ponderando pelas frequências de CarreiraHabilidade.
+    """Calcula compatibilidade percentual do usuário com uma carreira específica ponderando por frequências das habilidades
 
     percentual = 100 * soma(freq das habilidades da carreira que o usuário possui) / soma(freq de todas as habilidades da carreira)
 
@@ -134,7 +130,6 @@ def calcular_compatibilidade_usuario_carreira(
         "habilidades_cobertas": habilidades_nomes,
     }
 
-# Retorna compatibilidade com todas as carreiras para um usuário (ponderada por frequência)
 def compatibilidade_carreiras_por_usuario(
     session: Session,
     usuario_id: int,
@@ -142,6 +137,7 @@ def compatibilidade_carreiras_por_usuario(
     min_freq: int | None = DEFAULT_MIN_FREQ, # frequência mínima de CarreiraHabilidade a considerar
     taxa_cobertura: float | None = DEFAULT_TAXA_COBERTURA, # proporção do núcleo da carreira a considerar
 ) -> List[Dict[str, Any]]:
+    """Calcula compatibilidade do usuário com todas as carreiras e retorna lista ordenada por percentual decrescente"""
 
     # Busca todas as carreiras e calcula compatibilidade
     carreiras = session.query(Carreira).all()

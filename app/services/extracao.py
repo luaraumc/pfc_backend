@@ -1,15 +1,14 @@
-from dotenv import load_dotenv # variáveis de ambiente de um arquivo .env
-import os # manipulação do sistema operacional
-from typing import List # tipos para listas
+from dotenv import load_dotenv 
+import os
+from typing import List
 from sqlalchemy.orm import Session
-from openai import OpenAI # cliente OpenAI para chamadas à API
-import json, re, unicodedata # manipulação de JSON, expressões regulares e normalização de texto
+from openai import OpenAI
+import json, re, unicodedata
 from app.models.normalizacaoModels import Normalizacao
 from app.models.categoriaModels import Categoria 
 
-load_dotenv() # carrega chave da API do arquivo .env
+load_dotenv()
 
-# Instrução para o modelo
 PROMPT_BASE = """
 Você é um extrator de habilidades técnicas.
 Objetivo: a partir do texto da vaga abaixo, extraia SOMENTE hard skills presentes literalmente no texto e retorne APENAS um JSON válido.
@@ -73,18 +72,18 @@ Categorias permitidas (escolha exata de um destes nomes):
  - Web
 """
 
-# Carrega padrões de normalização da base de dados
 def carregar_padroes_db(session: Session | None) -> list[tuple[re.Pattern, str]]:
+    """Carrega padrões de normalização do banco de dados e retorna lista de tuplas (regex compilado, nome padronizado)"""
     if session is None:
         return []
     try:
-        regras = session.query(Normalizacao).order_by(Normalizacao.id.asc()).all()  # Consulta a tabela de normalização
+        regras = session.query(Normalizacao).order_by(Normalizacao.id.asc()).all() 
         return [(re.compile(r.nome, re.IGNORECASE), r.nome_padronizado) for r in regras]
     except Exception:
         return []
 
-# Lista os nomes de categorias existentes no banco (para orientar o modelo)
 def listar_categorias_db(session: Session | None) -> list[str]:
+    """Lista nomes de categorias existentes no banco de dados ordenadas alfabeticamente para orientar o modelo de IA"""
     if session is None:
         return []
     try:
@@ -93,8 +92,8 @@ def listar_categorias_db(session: Session | None) -> list[str]:
     except Exception:
         return []
 
-# Normaliza uma habilidade conforme os padrões definidos
 def normalizar_habilidade(habilidade: str, session: Session | None = None) -> str:
+    """Normaliza nome de habilidade aplicando padrões do banco de dados e regras de limpeza/formatação"""
     habilidade = habilidade.strip() # remove espaços em branco nas extremidades
     habilidade = re.sub(r'[\-_\/]+', ' ', habilidade) # normaliza hífen/underscore/"/" em espaço
     habilidade = re.sub(r'\s+', ' ', habilidade)[:60] # reduz múltiplos espaços e limita tamanho
@@ -116,8 +115,8 @@ def normalizar_habilidade(habilidade: str, session: Session | None = None) -> st
     habilidade_cap = ' '.join(p.capitalize() for p in habilidade.split())
     return habilidade_cap
 
-# Padroniza a descrição da vaga para facilitar a extração
 def padronizar_descricao(descricao: str) -> str:
+    """Padroniza descrição da vaga removendo acentos, caracteres especiais e normalizando espaçamento"""
     descricao = unicodedata.normalize('NFD', descricao) # normaliza acentuação
     descricao = descricao.encode('ascii', 'ignore').decode('utf-8') # remove acentos
     descricao = descricao.lower() # converte para minúsculas
@@ -125,16 +124,16 @@ def padronizar_descricao(descricao: str) -> str:
     descricao = re.sub(r'\s+', ' ', descricao).strip() # reduz múltiplos espaços e remove espaços nas extremidades
     return descricao
 
-# Elimina cópias redundantes
 def deduplicar(hab: str) -> str:
+    """Gera chave de deduplicação removendo acentos, espaços e caracteres especiais para comparação"""
     hab = hab.strip().lower() # remove espaços e converte para minúsculas
     hab = unicodedata.normalize('NFD', hab) # normaliza acentuação
     hab = ''.join(c for c in hab if not unicodedata.combining(c)) # remove acentos
     hab = re.sub(r'[^a-z0-9]', '', hab) # remove caracteres especiais
     return hab
 
-# Extrai habilidades da descrição usando a API do OpenAI
 def extrair_habilidades_descricao(descricao: str, session: Session | None = None) -> List[dict]:
+    """Extrai habilidades técnicas da descrição usando OpenAI GPT-4.1 e retorna lista com nomes normalizados e categorias sugeridas"""
     cliente = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) # inicializa o cliente com a chave da API
     categorias_lista = listar_categorias_db(session)
     categorias_texto = "\n".join(f"- {nome}" for nome in categorias_lista) if categorias_lista else ""
@@ -143,7 +142,7 @@ def extrair_habilidades_descricao(descricao: str, session: Session | None = None
         resposta = cliente.responses.create(
             model="gpt-4.1",
             input=prompt,
-            temperature=0.15, # baixo para respostas mais consistentes
+            temperature=0.15,
             max_output_tokens=1000
         )
         texto_completo = ""
@@ -163,6 +162,7 @@ def extrair_habilidades_descricao(descricao: str, session: Session | None = None
 
         # Função auxiliar para tentar interpretar um segmento como JSON
         def _validar_categoria_sugerida(cat: str | None) -> str | None:
+            """Valida se a categoria sugerida está na lista de categorias permitidas, retornando o nome correto ou None"""
             if not cat:
                 return None
             if not categorias_lista:
@@ -174,6 +174,7 @@ def extrair_habilidades_descricao(descricao: str, session: Session | None = None
             return None
 
         def tentar_json(segmento: str):
+            """Tenta interpretar um segmento de texto como JSON e extrair habilidades"""
             nonlocal habilidades_extraidas # permite modificar a variável externa
             try:
                 data = json.loads(segmento) # tenta carregar o JSON

@@ -1,36 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException, Body # cria dependências e exceções HTTP
-from datetime import datetime # para comparar expiração de códigos
-from app.services.usuario import atualizar_usuario, buscar_usuario_por_id, deletar_usuario, atualizar_senha # serviços relacionados ao usuário
-from app.services.logExclusao import registrar_exclusao_usuario # serviço para auditoria de exclusões
-from app.services.usuarioHabilidade import criar_usuario_habilidade, listar_habilidades_usuario, remover_usuario_habilidade # serviços para manipular habilidades do usuário
-from app.services.compatibilidade import compatibilidade_carreiras_por_usuario, calcular_compatibilidade_usuario_carreira # serviços de compatibilidade
-from app.routes.authRoutes import enviar_email, _gerar_codigo # enviar email e gerar código de verificação
+from fastapi import APIRouter, Depends, HTTPException, Body
+from datetime import datetime
+from app.services.usuario import atualizar_usuario, buscar_usuario_por_id, deletar_usuario, atualizar_senha
+from app.services.logExclusao import registrar_exclusao_usuario
+from app.services.usuarioHabilidade import criar_usuario_habilidade, listar_habilidades_usuario, remover_usuario_habilidade
+from app.services.compatibilidade import compatibilidade_carreiras_por_usuario, calcular_compatibilidade_usuario_carreira
+from app.routes.authRoutes import enviar_email, _gerar_codigo
 from app.models.usuarioHabilidadeModels import UsuarioHabilidade
 from app.models.codigoAutenticacaoModels import CodigoAutenticacao 
 from app.models.carreiraHabilidadeModels import CarreiraHabilidade
 from app.models.habilidadeModels import Habilidade 
 from app.models.usuarioModels import Usuario 
-from sqlalchemy.orm import Session# cria sessões com o banco de dados
-from app.dependencies import pegar_sessao, verificar_token # pegar a sessão do banco de dados e verificar o token
-from app.config import bcrypt_context # configuração de criptografia
-from app.schemas.usuarioSchemas import UsuarioOut, AtualizarUsuarioSchema # schemas para validação de dados
-from app.schemas.usuarioHabilidadeSchemas import UsuarioHabilidadeBase, UsuarioHabilidadeOut # schemas para validação de dados
-from app.schemas.authSchemas import ConfirmarNovaSenhaSchema, ConfirmarCodigoSchema, SolicitarCodigoSchema # schemas para validação de dados
+from sqlalchemy.orm import Session
+from app.dependencies import pegar_sessao, verificar_token
+from app.config import bcrypt_context
+from app.schemas.usuarioSchemas import UsuarioOut, AtualizarUsuarioSchema
+from app.schemas.usuarioHabilidadeSchemas import UsuarioHabilidadeBase, UsuarioHabilidadeOut
+from app.schemas.authSchemas import ConfirmarNovaSenhaSchema, ConfirmarCodigoSchema, SolicitarCodigoSchema
 from pydantic import ValidationError
 from app.utils.errors import raise_validation_http_exception
 
-# Inicializa o router
 usuarioRouter = APIRouter(prefix="/usuario", tags=["usuario"])
 
-# Buscar usuário por ID
-@usuarioRouter.get("/{usuario_id}", response_model=UsuarioOut) # response_model: validar e filtrar os dados antes de enviar ao cliente
+@usuarioRouter.get("/{usuario_id}", response_model=UsuarioOut)
 async def get_usuario(usuario_id: int, session: Session = Depends(pegar_sessao)):
+    """Busca um usuário específico pelo ID ou retorna erro 404 se não encontrado"""
     usuario = buscar_usuario_por_id(session, usuario_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return usuario
 
-# Atualizar dados de usuário - AUTENTICADA
 @usuarioRouter.put("/atualizar/{usuario_id}")
 async def atualizar_usuario_route(
     usuario_id: int,
@@ -38,22 +36,22 @@ async def atualizar_usuario_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    """Atualiza os dados de um usuário existente pelo ID com autenticação obrigatória"""
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     usuario_atualizado = atualizar_usuario(session, usuario_id, usuario_data)
     return {"message": "Usuário atualizado com sucesso: " + usuario_atualizado.nome}
 
-# Solicitar código de verificação por email (motivo: atualizar_senha)
 @usuarioRouter.post("/solicitar-codigo/atualizar-senha")
 async def solicitar_codigo_atualizar(payload: SolicitarCodigoSchema, session: Session = Depends(pegar_sessao)):
+    """Envia código de verificação por email para atualização de senha"""
     usuario = session.query(Usuario).filter(Usuario.email == payload.email).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     _gerar_codigo(session, usuario, "atualizar_senha")
     return {"message": "Código enviado para atualização de senha."}
 
-# Confirmar código + atualizar senha - AUTENTICADA
 @usuarioRouter.put("/atualizar-senha/{usuario_id}")
 async def atualizar_senha_route(
     usuario_id: int,
@@ -61,6 +59,7 @@ async def atualizar_senha_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    """Valida código de verificação e atualiza senha do usuário com autenticação obrigatória"""
     # valida payload usando Pydantic para capturar mensagens legíveis
     try:
         dados = ConfirmarNovaSenhaSchema.model_validate(dados_payload)
@@ -91,16 +90,15 @@ async def atualizar_senha_route(
     session.commit()
     return {"message": f"Senha atualizada com sucesso para o usuário: {usuario_db.nome}"}
 
-# Solicitar código de verificação por email (motivo: exclusao_conta)
 @usuarioRouter.post("/solicitar-codigo/exclusao-conta")
 async def solicitar_codigo_exclusao(payload: SolicitarCodigoSchema, session: Session = Depends(pegar_sessao)):
+    """Envia código de verificação por email para exclusão de conta"""
     usuario = session.query(Usuario).filter(Usuario.email == payload.email).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     _gerar_codigo(session, usuario, "exclusao_conta")
     return {"message": "Código enviado para exclusão de conta."}
 
-# Confirmar código + deletar usuário - AUTENTICADA
 @usuarioRouter.delete("/deletar/{usuario_id}")
 async def deletar_usuario_route(
     usuario_id: int,
@@ -108,6 +106,7 @@ async def deletar_usuario_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    """Valida código de verificação e exclui conta do usuário com registro de auditoria"""
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db or usuario_db.email != dados.email:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -139,25 +138,25 @@ async def deletar_usuario_route(
 
 # ======================= HABILIDADES DO USUÁRIO =======================
 
-# Listar habilidades do usuário - AUTENTICADA
 @usuarioRouter.get("/{usuario_id}/habilidades", response_model=list[UsuarioHabilidadeOut])
 async def listar_habilidades_usuario_route(
     usuario_id: int,
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    """Lista todas as habilidades associadas a um usuário específico com autenticação obrigatória"""
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return listar_habilidades_usuario(session, usuario_id)
 
-# Listar habilidades faltantes para o usuário - AUTENTICADA
 @usuarioRouter.get("/{usuario_id}/habilidades-faltantes", response_model=list[dict])
 async def listar_habilidades_faltantes_route(
     usuario_id: int,
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao),
 ):
+    """Lista habilidades requeridas pela carreira do usuário que ele ainda não possui, ordenadas por frequência"""
     # Busca usuário
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
@@ -192,13 +191,13 @@ async def listar_habilidades_faltantes_route(
     faltantes.sort(key=lambda x: x["frequencia"], reverse=True) # ordena por frequência decrescente
     return faltantes
 
-# Todas as carreiras por compatibilidade (ponderada por frequência) - AUTENTICADA
 @usuarioRouter.get("/{usuario_id}/compatibilidade/top", response_model=list[dict])
 async def top_carreiras_usuario_route(
     usuario_id: int,
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao),
 ):
+    """Calcula compatibilidade do usuário com todas as carreiras ponderada por frequência das habilidades"""
     # Busca usuário
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
@@ -208,7 +207,6 @@ async def top_carreiras_usuario_route(
     resultados = compatibilidade_carreiras_por_usuario(session, usuario_id)
     return resultados
 
-# Compatibilidade do usuário para uma carreira específica - AUTENTICADA
 @usuarioRouter.get("/{usuario_id}/compatibilidade/carreira/{carreira_id}", response_model=dict)
 async def compatibilidade_usuario_carreira_route(
     usuario_id: int,
@@ -216,6 +214,7 @@ async def compatibilidade_usuario_carreira_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao),
 ):
+    """Calcula compatibilidade do usuário com uma carreira específica"""
     # Busca usuário
     usuario_db = buscar_usuario_por_id(session, usuario_id)
     if not usuario_db:
@@ -225,7 +224,6 @@ async def compatibilidade_usuario_carreira_route(
     resultado = calcular_compatibilidade_usuario_carreira(session, usuario_id, carreira_id)
     return resultado
 
-# Adicionar habilidade ao usuário - AUTENTICADA
 @usuarioRouter.post("/{usuario_id}/adicionar-habilidade/{habilidade_id}", response_model=UsuarioHabilidadeOut)
 async def adicionar_habilidade_usuario_route(
     usuario_id: int,
@@ -233,6 +231,7 @@ async def adicionar_habilidade_usuario_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    """Adiciona uma habilidade ao usuário verificando duplicatas com autenticação obrigatória"""
     # Verifica se a relação já existe
     existe = session.query(UsuarioHabilidade).filter_by(usuario_id=usuario_id, habilidade_id=habilidade_id).first()
     if existe:
@@ -241,7 +240,6 @@ async def adicionar_habilidade_usuario_route(
     usuario_habilidade_data = UsuarioHabilidadeBase(usuario_id=usuario_id, habilidade_id=habilidade_id)
     return criar_usuario_habilidade(session, usuario_habilidade_data)
 
-# Remover habilidade do usuário - AUTENTICADA
 @usuarioRouter.delete("/{usuario_id}/remover-habilidade/{habilidade_id}", response_model=UsuarioHabilidadeOut)
 async def remover_habilidade_usuario_route(
     usuario_id: int,
@@ -249,6 +247,7 @@ async def remover_habilidade_usuario_route(
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
+    """Remove uma habilidade do usuário com autenticação obrigatória"""
     # Remove a habilidade
     resultado = remover_usuario_habilidade(session, usuario_id, habilidade_id)
     # Verifica se a relação existia
