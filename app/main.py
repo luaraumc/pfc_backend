@@ -7,7 +7,7 @@ app = FastAPI() # instancia da classe FastAPI
 # configurando o middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://www.rumotechno.com.br/"],
+    allow_origins=["https://www.rumotechno.com.br"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
