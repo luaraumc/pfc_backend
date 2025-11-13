@@ -1,13 +1,6 @@
 from pydantic import BaseModel, field_validator # criação dos schemas e validação de campos
 from datetime import datetime # campos de data e hora
-from typing import List, Dict # tipos para listas e dicionários
-import re # expressões regulares para validação de senha e e-mail
-
-"""
-Classes Base: representam os dados que serão enviados (POST). Não precisam dos campos autoincrement, pois são gerados pelo banco
-Classes Out: herdam das Classes Base e representam os dados que serão retornados (GET). Precisam dos campos autoincrement
-model_config = {'from_attributes': True}: permite que o Pydantic converta automaticamente objetos ORM do SQLAlchemy para schema
-"""
+import re
 
 # Schema de Usuario
 class UsuarioBase(BaseModel):
@@ -20,6 +13,7 @@ class UsuarioBase(BaseModel):
 
     @field_validator("email")
     def validar_email(valor: str) -> str:
+        """Valida o formato do e-mail."""
         valor = valor.strip()
         if "@" not in valor:
             raise ValueError("E-mail inválido: deve conter '@'")
@@ -27,13 +21,13 @@ class UsuarioBase(BaseModel):
             dominio = valor.split("@", 1)[1]
         except Exception:
             raise ValueError("E-mail inválido")
-        # domínio deve conter ao menos um ponto (ex.: .com, .org, .edu.br) e não iniciar/terminar com ponto
         if "." not in dominio or dominio.startswith('.') or dominio.endswith('.'):
             raise ValueError("E-mail inválido")
         return valor
 
     @field_validator("senha")
     def validar_senha(valor: str) -> str:
+        """Valida a senha. Regras: ao menos 6 caracteres, sem espaços, ao menos uma maiúscula e um caractere especial."""
         if len(valor) < 6:
             raise ValueError("Senha deve ter no mínimo 6 caracteres")
         if re.search(r"\s", valor):
@@ -53,7 +47,6 @@ class UsuarioOut(UsuarioBase):
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
-# Schema para atualização de usuário
 class AtualizarUsuarioSchema(BaseModel):
     nome: str
     carreira_id: int
