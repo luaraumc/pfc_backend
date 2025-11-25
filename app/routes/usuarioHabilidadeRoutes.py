@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 from app.dependencies import pegar_sessao, verificar_token
 from app.schemas.usuarioHabilidadeSchemas import UsuarioHabilidadeBase, UsuarioHabilidadeOut
 
+
 usuarioHabilidadeRouter = APIRouter(prefix="/usuario", tags=["usuario"])
+
 
 @usuarioHabilidadeRouter.get("/{usuario_id}/habilidades", response_model=list[UsuarioHabilidadeOut])
 async def listar_habilidades_usuario_route(
@@ -19,13 +21,17 @@ async def listar_habilidades_usuario_route(
     session: Session = Depends(pegar_sessao)
 ):
     """Lista todas as habilidades associadas a um usuário específico com autenticação obrigatória"""
-    # Garante que o usuário autenticado só acesse as próprias habilidades
+
     if usuario.id != usuario_id:
         raise HTTPException(status_code=403, detail="Acesso negado: você só pode listar suas próprias habilidades")
+    
     usuario_db = buscar_usuario_por_id(session, usuario_id)
+
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
     return listar_habilidades_usuario(session, usuario_id)
+
 
 @usuarioHabilidadeRouter.get("/{usuario_id}/habilidades-faltantes", response_model=list[dict])
 async def listar_habilidades_faltantes_route(
@@ -34,8 +40,9 @@ async def listar_habilidades_faltantes_route(
     session: Session = Depends(pegar_sessao),
 ):
     """Lista habilidades requeridas pela carreira do usuário que ele ainda não possui, ordenadas por frequência"""
-    # Busca usuário
+
     usuario_db = buscar_usuario_por_id(session, usuario_id)
+
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
@@ -68,6 +75,7 @@ async def listar_habilidades_faltantes_route(
     faltantes.sort(key=lambda x: x["frequencia"], reverse=True) # ordena por frequência decrescente
     return faltantes
 
+
 @usuarioHabilidadeRouter.get("/{usuario_id}/compatibilidade/top", response_model=list[dict])
 async def top_carreiras_usuario_route(
     usuario_id: int,
@@ -75,14 +83,16 @@ async def top_carreiras_usuario_route(
     session: Session = Depends(pegar_sessao),
 ):
     """Calcula compatibilidade do usuário com todas as carreiras ponderada por frequência das habilidades"""
-    # Busca usuário
+
     usuario_db = buscar_usuario_por_id(session, usuario_id)
+
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
     # Calcula compatibilidade para todas as carreiras
     resultados = compatibilidade_carreiras_por_usuario(session, usuario_id)
     return resultados
+
 
 @usuarioHabilidadeRouter.get("/{usuario_id}/compatibilidade/carreira/{carreira_id}", response_model=dict)
 async def compatibilidade_usuario_carreira_route(
@@ -92,14 +102,16 @@ async def compatibilidade_usuario_carreira_route(
     session: Session = Depends(pegar_sessao),
 ):
     """Calcula compatibilidade do usuário com uma carreira específica"""
-    # Busca usuário
+
     usuario_db = buscar_usuario_por_id(session, usuario_id)
+
     if not usuario_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
     # Calcula compatibilidade para a carreira específica
     resultado = calcular_compatibilidade_usuario_carreira(session, usuario_id, carreira_id)
     return resultado
+
 
 @usuarioHabilidadeRouter.post("/{usuario_id}/adicionar-habilidade/{habilidade_id}", response_model=UsuarioHabilidadeOut)
 async def adicionar_habilidade_usuario_route(
@@ -109,16 +121,17 @@ async def adicionar_habilidade_usuario_route(
     session: Session = Depends(pegar_sessao)
 ):
     """Adiciona uma habilidade ao usuário verificando duplicatas com autenticação obrigatória"""
-    # Garante que o usuário autenticado só cadastre habilidades para si próprio
+
     if usuario.id != usuario_id:
         raise HTTPException(status_code=403, detail="Acesso negado: você só pode cadastrar habilidades para sua própria conta")
-    # Verifica se a relação já existe
+    
     existe = session.query(UsuarioHabilidade).filter_by(usuario_id=usuario_id, habilidade_id=habilidade_id).first()
     if existe:
         raise HTTPException(status_code=400, detail="Habilidade já adicionada ao usuário")
-    # Adiciona a habilidade
+    
     usuario_habilidade_data = UsuarioHabilidadeBase(usuario_id=usuario_id, habilidade_id=habilidade_id)
     return criar_usuario_habilidade(session, usuario_habilidade_data)
+
 
 @usuarioHabilidadeRouter.delete("/{usuario_id}/remover-habilidade/{habilidade_id}", response_model=UsuarioHabilidadeOut)
 async def remover_habilidade_usuario_route(
@@ -128,12 +141,12 @@ async def remover_habilidade_usuario_route(
     session: Session = Depends(pegar_sessao)
 ):
     """Remove uma habilidade do usuário com autenticação obrigatória"""
-    # Garante que o usuário autenticado só remova habilidades da própria conta
+
     if usuario.id != usuario_id:
         raise HTTPException(status_code=403, detail="Acesso negado: você só pode remover habilidades da sua própria conta")
-    # Remove a habilidade
+
     resultado = remover_usuario_habilidade(session, usuario_id, habilidade_id)
-    # Verifica se a relação existia
+
     if not resultado:
         raise HTTPException(status_code=404, detail="Relação usuário-habilidade não encontrada")
     return resultado
