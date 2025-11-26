@@ -1,5 +1,9 @@
-from app.models import Vaga, Habilidade, VagaHabilidade, CarreiraHabilidade, Categoria # modelos de tabela definidos no arquivo models.py
-from app.schemas import VagaBase, VagaOut # schema de entrada e saída
+from app.models.vagaModels import Vaga
+from app.models.habilidadeModels import Habilidade
+from app.models.vagaHabilidadeModels import VagaHabilidade
+from app.models.carreiraHabilidadeModels import CarreiraHabilidade
+from app.models.categoriaModels import Categoria 
+from app.schemas.vagaSchemas import VagaBase, VagaOut # schema de entrada e saída
 from sqlalchemy.orm import Session # manipular sessões do banco de dados
 from sqlalchemy.exc import IntegrityError # capturar erros de integridade do banco de dados
 from app.services.extracao import padronizar_descricao, extrair_habilidades_descricao, normalizar_habilidade, deduplicar # funções de extração e padronização
@@ -8,10 +12,7 @@ from app.services.extracao import padronizar_descricao, extrair_habilidades_desc
 
 # CREATE / POST - Cria a vaga sem processar habilidades
 def criar_vaga(session: Session, vaga_data: VagaBase) -> VagaOut:
-    """
-    Cria um registro de vaga com título/descrição/carreira padronizando a descrição,
-    sem processar habilidades ainda (usado para o fluxo em duas etapas com preview).
-    """
+    """Cria um registro de vaga padronizando a descrição, sem processar habilidades ainda para fluxo de preview"""
     # Padroniza descrição antes de salvar
     vaga_data.descricao = padronizar_descricao(vaga_data.descricao)
     nova_vaga = Vaga(**vaga_data.model_dump())
@@ -38,6 +39,7 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> VagaOut:
 
 # CONFIRMAR - Confirma lista final de habilidades para a vaga e associa na carreira
 def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finais: list) -> dict:
+    """Confirma e associa lista final de habilidades editadas à vaga e incrementa frequência na carreira"""
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         raise ValueError("Vaga não encontrada")
@@ -159,6 +161,7 @@ def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finai
 
 # READ / GET - Lista todas as vagas
 def listar_vagas(session: Session) -> list[VagaOut]:
+    """Lista todas as vagas ordenadas por data de criação decrescente com informações da carreira"""
     vagas = session.query(Vaga).order_by(Vaga.criado_em.desc()).all()
     # Precisa montar carreira_nome manualmente, pois o ORM não possui esse atributo diretamente
     resultado: list[VagaOut] = []
@@ -175,6 +178,7 @@ def listar_vagas(session: Session) -> list[VagaOut]:
 
 # DELETE / DELETE - Remove a relação vaga-habilidade
 def remover_relacao_vaga_habilidade(session, vaga_id: int, habilidade_id: int) -> bool:
+    """Remove a associação entre uma vaga e uma habilidade específica retornando True se removida"""
     relacao = (
         session.query(VagaHabilidade)
         .filter_by(vaga_id=vaga_id, habilidade_id=habilidade_id)
@@ -188,13 +192,7 @@ def remover_relacao_vaga_habilidade(session, vaga_id: int, habilidade_id: int) -
 
 # DELETE / DELETE - Exclui a vaga decrementando frequências das habilidades na carreira
 def excluir_vaga_decrementando(session: Session, vaga_id: int) -> bool:
-    """
-    Exclui a vaga e ajusta a frequência das habilidades associadas à carreira da vaga.
-    - Decrementa 1 na frequência das relações CarreiraHabilidade correspondentes às habilidades da vaga.
-    - Remove a relação CarreiraHabilidade quando a frequência atingir 0.
-    - Remove a vaga (e suas relações VagaHabilidade por cascata, se configurado) ao final.
-    Retorna True se excluiu, False se a vaga não existe.
-    """
+    """Exclui a vaga decrementando frequências das habilidades na carreira e removendo relações com frequência zero"""
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         return False
@@ -227,6 +225,7 @@ def excluir_vaga_decrementando(session: Session, vaga_id: int) -> bool:
 
 # PREVIEW - Extrai habilidades da descrição da vaga sem salvar as habilidades e relacioná-las com a carreira
 def extrair_habilidades_vaga(session: Session, vaga_id: int) -> list[dict]:
+    """Extrai habilidades da descrição da vaga usando IA e retorna lista para preview com informações de categoria"""
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         return []

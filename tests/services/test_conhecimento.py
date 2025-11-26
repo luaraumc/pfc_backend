@@ -1,10 +1,7 @@
 import os
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 
-# Variáveis mínimas de ambiente para evitar erros nas imports
 os.environ.setdefault("KEY_CRYPT", "test-key")
 os.environ.setdefault("ALGORITHM", "HS256")
 os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
@@ -14,7 +11,6 @@ os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_PORT", "5432")
 os.environ.setdefault("DB_NAME", "testdb")
 
-from app.dependencies import Base
 from app.schemas import ConhecimentoBase, ConhecimentoOut
 from app.services.conhecimento import (
 	criar_conhecimento,
@@ -23,32 +19,19 @@ from app.services.conhecimento import (
 	atualizar_conhecimento,
 	deletar_conhecimento,
 )
-
-
-@pytest.fixture(scope="function")
-def session():
-	engine = create_engine("sqlite+pysqlite:///:memory:", echo=False, future=True)
-	TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-	Base.metadata.create_all(bind=engine)
-	db = TestingSessionLocal()
-	try:
-		yield db
-	finally:
-		db.close()
-		Base.metadata.drop_all(bind=engine)
-
-
-def _payload(nome="Python") -> ConhecimentoBase:
-	return ConhecimentoBase(nome=nome)
+from tests.services.utils_test_services import session as session
+from tests.services.utils_test_services import conhecimento_payload as _payload
 
 
 def test_listar_conhecimentos_vazio(session):
+	"""Garante lista vazia quando não há conhecimentos cadastrados."""
 	itens = listar_conhecimentos(session)
 	assert isinstance(itens, list)
 	assert len(itens) == 0
 
 
 def test_criar_conhecimento(session):
+	"""Cria um conhecimento e valida o DTO retornado."""
 	payload = _payload("Python")
 	out = criar_conhecimento(session, payload)
 	assert isinstance(out, ConhecimentoOut)
@@ -57,6 +40,7 @@ def test_criar_conhecimento(session):
 
 
 def test_listar_conhecimentos_populado(session):
+	"""Lista conhecimentos após inserir dois itens e confere nomes."""
 	criar_conhecimento(session, _payload("Python"))
 	criar_conhecimento(session, _payload("SQL"))
 	itens = listar_conhecimentos(session)
@@ -66,6 +50,7 @@ def test_listar_conhecimentos_populado(session):
 
 
 def test_buscar_conhecimento_por_id(session):
+	"""Busca conhecimento por ID e valida o retorno."""
 	out = criar_conhecimento(session, _payload("Docker"))
 	achado = buscar_conhecimento_por_id(session, out.id)
 	assert achado is not None
@@ -74,10 +59,12 @@ def test_buscar_conhecimento_por_id(session):
 
 
 def test_buscar_conhecimento_inexistente(session):
+	"""Retorna None ao buscar conhecimento inexistente."""
 	assert buscar_conhecimento_por_id(session, 99999) is None
 
 
 def test_atualizar_conhecimento(session):
+	"""Atualiza nome de um conhecimento existente."""
 	criado = criar_conhecimento(session, _payload("Git"))
 	atualizado = atualizar_conhecimento(session, criado.id, ConhecimentoBase(nome="Git Avançado"))
 	assert atualizado is not None
@@ -86,6 +73,7 @@ def test_atualizar_conhecimento(session):
 
 
 def test_deletar_conhecimento(session):
+	"""Remove um conhecimento e confirma que não existe mais no banco."""
 	criado = criar_conhecimento(session, _payload("Kubernetes"))
 	deletado = deletar_conhecimento(session, criado.id)
 	assert deletado is not None
@@ -94,6 +82,7 @@ def test_deletar_conhecimento(session):
 
 
 def test_criar_conhecimento_duplicado_gera_integrity_error(session):
+	"""Criar conhecimento duplicado resulta em IntegrityError e rollback."""
 	criar_conhecimento(session, _payload("Java"))
 	with pytest.raises(IntegrityError):
 		criar_conhecimento(session, _payload("Java"))

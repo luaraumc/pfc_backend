@@ -1,49 +1,40 @@
-from app.models import Conhecimento # modelo de tabela definido no arquivo models.py
-from app.schemas import ConhecimentoBase, ConhecimentoOut # schema de entrada e saída
+from app.models.conhecimentoModels import Conhecimento
+from app.schemas.conhecimentoSchemas import ConhecimentoBase, ConhecimentoOut
 
-"""
-model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
-model_validate: converte um objeto em um schema Pydantic para retornar dados das funções CRUD no formato esperado pela API
-exclude_unset: gera um dicionário para atualizar apenas os campos que foram informados, sem sobrescrever os demais
-"""
-
-# ======================= CRUD =======================
-
-# CREATE - Cria um novo conhecimento
 def criar_conhecimento(session, conhecimento_data: ConhecimentoBase) -> ConhecimentoOut:
-    novo_conhecimento = Conhecimento(**conhecimento_data.model_dump()) # Cria um objeto Conhecimento a partir dos dados do schema
-    session.add(novo_conhecimento)  # Adiciona no banco
-    session.commit() # Salva no banco
-    session.refresh(novo_conhecimento) # Atualiza o objeto com dados do banco
-    return ConhecimentoOut.model_validate(novo_conhecimento) # Converte o modelo SQLAlchemy para o schema de saída (ConhecimentoOut)
+    """Cria um novo conhecimento no banco de dados a partir dos dados do schema, salva e retorna como ConhecimentoOut"""
+    novo_conhecimento = Conhecimento(**conhecimento_data.model_dump())
+    session.add(novo_conhecimento)
+    session.commit()
+    session.refresh(novo_conhecimento)
+    return ConhecimentoOut.model_validate(novo_conhecimento)
 
-# READ - Lista todos os conhecimentos
 def listar_conhecimentos(session) -> list[ConhecimentoOut]:
-    conhecimentos = session.query(Conhecimento).all()  # Busca todos os conhecimentos no banco
-    return [ConhecimentoOut.model_validate(conhecimento) for conhecimento in conhecimentos] # Converte cada conhecimento para o schema de saída
+    """Busca todos os conhecimentos no banco de dados e retorna uma lista convertida para ConhecimentoOut"""
+    conhecimentos = session.query(Conhecimento).all()
+    return [ConhecimentoOut.model_validate(conhecimento) for conhecimento in conhecimentos]
 
-# READ - Busca um conhecimento pelo id
 def buscar_conhecimento_por_id(session, id: int) -> ConhecimentoOut | None:
-    conhecimento = session.query(Conhecimento).filter(Conhecimento.id == id).first()  # Busca o conhecimento pelo id
-    return ConhecimentoOut.model_validate(conhecimento) if conhecimento else None # Se encontrado converte para schema de saída, senão retorna None
+    """Busca um conhecimento específico pelo ID no banco de dados e retorna como ConhecimentoOut ou None se não encontrado"""
+    conhecimento = session.query(Conhecimento).filter(Conhecimento.id == id).first()
+    return ConhecimentoOut.model_validate(conhecimento) if conhecimento else None
 
-# UPDATE - Atualiza os dados de um conhecimento existente usando schema
 def atualizar_conhecimento(session, id: int, conhecimento_data: ConhecimentoBase) -> ConhecimentoOut | None:
-    conhecimento = session.query(Conhecimento).filter(Conhecimento.id == id).first()  # Busca o conhecimento pelo id
+    """Busca um conhecimento pelo ID, atualiza apenas os campos informados no schema, salva no banco e retorna como ConhecimentoOut"""
+    conhecimento = session.query(Conhecimento).filter(Conhecimento.id == id).first()
     if conhecimento:
-        # Atualiza os campos do conhecimento com os dados recebidos
         for key, value in conhecimento_data.model_dump(exclude_unset=True).items():
             setattr(conhecimento, key, value)
         session.commit()
         session.refresh(conhecimento)
-        return ConhecimentoOut.model_validate(conhecimento) # Retorna o conhecimento atualizado como schema de saída
+        return ConhecimentoOut.model_validate(conhecimento)
     return None
 
-# DELETE - Remove um conhecimento pelo id
 def deletar_conhecimento(session, id: int) -> ConhecimentoOut | None:
-    conhecimento = session.query(Conhecimento).filter(Conhecimento.id == id).first()  # Busca o conhecimento pelo id
+    """Busca um conhecimento pelo ID, remove do banco de dados e retorna os dados do conhecimento removido como ConhecimentoOut"""
+    conhecimento = session.query(Conhecimento).filter(Conhecimento.id == id).first()
     if conhecimento:
-        session.delete(conhecimento)  # Remove do banco
+        session.delete(conhecimento)
         session.commit()
-        return ConhecimentoOut.model_validate(conhecimento) # Retorna o conhecimento removido como schema de saída
+        return ConhecimentoOut.model_validate(conhecimento)
     return None
