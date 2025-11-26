@@ -1,6 +1,6 @@
 # Backend
 
-API REST construída com FastAPI, SQLAlchemy e Alembic. Inclui autenticação via JWT, gestão de usuários, carreiras, cursos, habilidades, vagas e extração de habilidades com suporte OpenAI.
+API REST construída com FastAPI, SQLAlchemy e Alembic. Inclui autenticação via JWT, gestão de perfil de usuário, carreiras, cursos, habilidades, vagas de emprego e extração de habilidades das vagascom suporte OpenAI.
 
 ## Configuração do ambiente
 
