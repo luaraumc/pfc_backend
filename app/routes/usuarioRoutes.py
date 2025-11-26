@@ -13,7 +13,9 @@ from app.schemas.authSchemas import ConfirmarNovaSenhaSchema, ConfirmarCodigoSch
 from pydantic import ValidationError
 from app.utils.errors import raise_validation_http_exception
 
+
 usuarioRouter = APIRouter(prefix="/usuario", tags=["usuario"])
+
 
 @usuarioRouter.get("/{usuario_id}", response_model=UsuarioOut)
 async def get_usuario(usuario_id: int, session: Session = Depends(pegar_sessao)):
@@ -25,6 +27,7 @@ async def get_usuario(usuario_id: int, session: Session = Depends(pegar_sessao))
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
     return usuario
+
 
 @usuarioRouter.put("/atualizar/{usuario_id}")
 async def atualizar_usuario_route(
@@ -46,6 +49,7 @@ async def atualizar_usuario_route(
     usuario_atualizado = atualizar_usuario(session, usuario_id, usuario_data)
     return {"message": "Usuário atualizado com sucesso: " + usuario_atualizado.nome}
 
+
 @usuarioRouter.post("/solicitar-codigo/atualizar-senha")
 async def solicitar_codigo_atualizar(payload: SolicitarCodigoSchema, session: Session = Depends(pegar_sessao)):
     """Envia código de verificação por email para atualização de senha"""
@@ -57,6 +61,7 @@ async def solicitar_codigo_atualizar(payload: SolicitarCodigoSchema, session: Se
     
     _gerar_codigo(session, usuario, "atualizar_senha")
     return {"message": "Código enviado para atualização de senha."}
+
 
 @usuarioRouter.put("/atualizar-senha/{usuario_id}")
 async def atualizar_senha_route(
@@ -70,7 +75,6 @@ async def atualizar_senha_route(
     if usuario.id != usuario_id:
         raise HTTPException(status_code=403, detail="Acesso negado: você só pode atualizar sua própria senha")
     
-    # valida payload usando Pydantic para capturar mensagens legíveis
     try:
         dados = ConfirmarNovaSenhaSchema.model_validate(dados_payload)
     except ValidationError as e:
@@ -81,7 +85,6 @@ async def atualizar_senha_route(
     if not usuario_db or usuario_db.email != dados.email:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
-    # Busca último código válido para motivos de senha
     rec = (
         session.query(CodigoAutenticacao)
         .filter(CodigoAutenticacao.usuario_id == usuario_db.id, CodigoAutenticacao.motivo.in_(["atualizar_senha"]))
@@ -104,6 +107,7 @@ async def atualizar_senha_route(
     session.commit()
     return {"message": f"Senha atualizada com sucesso para o usuário: {usuario_db.nome}"}
 
+
 @usuarioRouter.post("/solicitar-codigo/exclusao-conta")
 async def solicitar_codigo_exclusao(payload: SolicitarCodigoSchema, session: Session = Depends(pegar_sessao)):
     """Envia código de verificação por email para exclusão de conta"""
@@ -115,6 +119,7 @@ async def solicitar_codigo_exclusao(payload: SolicitarCodigoSchema, session: Ses
     
     _gerar_codigo(session, usuario, "exclusao_conta")
     return {"message": "Código enviado para exclusão de conta."}
+
 
 @usuarioRouter.delete("/deletar/{usuario_id}")
 async def deletar_usuario_route(
@@ -136,7 +141,6 @@ async def deletar_usuario_route(
     if dados.motivo != "exclusao_conta":
         raise HTTPException(status_code=400, detail="Motivo inválido para exclusão")
     
-    # Busca último código válido para motivos de exclusão de conta
     rec = (
         session.query(CodigoAutenticacao)
         .filter(CodigoAutenticacao.usuario_id == usuario_db.id, CodigoAutenticacao.motivo == "exclusao_conta")

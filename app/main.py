@@ -1,10 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# python -m uvicorn app.main:app --reload
-
 
 app = FastAPI()
-
 
 # configurando o middleware CORS
 app.add_middleware(

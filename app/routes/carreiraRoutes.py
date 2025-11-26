@@ -5,12 +5,15 @@ from app.dependencies import pegar_sessao, requer_admin
 from sqlalchemy.orm import Session 
 from app.models.carreiraModels import Carreira 
 
+
 carreiraRouter = APIRouter(prefix="/carreira", tags=["carreira"])
+
 
 @carreiraRouter.get("/", response_model=list[CarreiraOut]) 
 async def get_carreiras(session: Session = Depends(pegar_sessao)):
     """Retorna uma lista de todas as carreiras cadastradas no sistema"""
     return listar_carreiras(session)
+
 
 @carreiraRouter.get("/{carreira_id}", response_model=CarreiraOut) 
 async def get_carreira(carreira_id: int, session: Session = Depends(pegar_sessao)):
@@ -19,6 +22,7 @@ async def get_carreira(carreira_id: int, session: Session = Depends(pegar_sessao
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
     return carreira
+
 
 @carreiraRouter.post("/cadastro")
 async def cadastro(
@@ -33,6 +37,7 @@ async def cadastro(
     nova_carreira = criar_carreira(session, carreira_schema)
     return {"message": f"Carreira cadastrada com sucesso: {nova_carreira.nome}"}
 
+
 @carreiraRouter.put("/atualizar/{carreira_id}")
 async def atualizar(
     carreira_id: int,
@@ -45,6 +50,7 @@ async def atualizar(
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
     return {"message": f"Carreira atualizada com sucesso: {carreira.nome}"}
+
 
 @carreiraRouter.delete("/deletar/{carreira_id}")
 async def deletar(

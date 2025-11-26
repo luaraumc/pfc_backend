@@ -5,8 +5,10 @@ from app.models.carreiraHabilidadeModels import CarreiraHabilidade
 from app.models.carreiraModels import Carreira
 from app.models.habilidadeModels import Habilidade 
 
-DEFAULT_MIN_FREQ: int | None = 3  # filtra habilidades com frequência >= 3 (exclui as que aparecem apenas 1 vez)
-DEFAULT_TAXA_COBERTURA: float = 1.0 #proporção do núcleo da carreira (100%)
+
+DEFAULT_MIN_FREQ: int | None = 3  # filtra habilidades com frequência >= 3 (exclui as que aparecem apenas 1 ou 2 vezes)
+DEFAULT_TAXA_COBERTURA: float = 1.0 # proporção do núcleo da carreira (100%)
+
 
 def _ids_habilidades_do_usuario(session: Session, usuario_id: int) -> Set[int]:
     """Retorna conjunto de IDs das habilidades que o usuário possui"""
@@ -16,6 +18,7 @@ def _ids_habilidades_do_usuario(session: Session, usuario_id: int) -> Set[int]:
         .all()
     )
     return {habilidade_id for (habilidade_id,) in linhas} # extrai apenas os IDs das tuplas retornadas
+
 
 def calcular_compatibilidade_usuario_carreira(
     session: Session,
@@ -129,6 +132,7 @@ def calcular_compatibilidade_usuario_carreira(
         "peso_total": round(float(peso_total_considerado), 4),
         "habilidades_cobertas": habilidades_nomes,
     }
+
 
 def compatibilidade_carreiras_por_usuario(
     session: Session,

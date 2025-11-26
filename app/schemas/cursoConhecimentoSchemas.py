@@ -5,6 +5,7 @@ class CursoConhecimentoBase(BaseModel):
     curso_id: int
     conhecimento_id: int
 
+
 class CursoConhecimentoOut(CursoConhecimentoBase):
     id: int
 

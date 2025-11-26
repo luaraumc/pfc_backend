@@ -4,7 +4,9 @@ from app.schemas.carreiraHabilidadeSchemas import CarreiraHabilidadeOut
 from app.dependencies import pegar_sessao, requer_admin 
 from sqlalchemy.orm import Session 
 
+
 carreiraHabilidadeRouter = APIRouter(prefix="/carreira", tags=["carreira"])
+
 
 @carreiraHabilidadeRouter.get("/{carreira_id}/habilidades", response_model=list[CarreiraHabilidadeOut])
 async def listar_habilidades_carreira_route(
@@ -13,6 +15,7 @@ async def listar_habilidades_carreira_route(
 ):
     """Lista todas as habilidades associadas a uma carreira específica"""
     return listar_carreira_habilidades(session, carreira_id)
+
 
 @carreiraHabilidadeRouter.delete("/{carreira_id}/remover-habilidade/{habilidade_id}", response_model=CarreiraHabilidadeOut)
 async def remover_habilidade_carreira_route(

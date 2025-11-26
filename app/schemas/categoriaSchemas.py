@@ -5,6 +5,7 @@ from datetime import datetime
 class CategoriaBase(BaseModel):
     nome: str
 
+
 class CategoriaOut(CategoriaBase):
     id: int
     atualizado_em: datetime

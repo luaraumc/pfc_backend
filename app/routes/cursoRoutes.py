@@ -6,13 +6,16 @@ from app.dependencies import pegar_sessao, requer_admin
 from app.models.cursoModels import Curso
 from app.models.usuarioModels import Usuario
 
+
 cursoRouter = APIRouter(prefix="/curso", tags=["curso"])
+
 
 @cursoRouter.get("/", response_model=list[CursoOut])
 async def get_cursos(session: Session = Depends(pegar_sessao)):
     """Lista todos os cursos cadastrados no sistema"""
     return listar_cursos(session)
- 
+
+
 @cursoRouter.get("/{curso_id}", response_model=CursoOut)
 async def get_curso(curso_id: int, session: Session = Depends(pegar_sessao)):
     """Busca um curso específico pelo ID ou retorna erro 404 se não encontrado"""
@@ -20,6 +23,7 @@ async def get_curso(curso_id: int, session: Session = Depends(pegar_sessao)):
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado")
     return curso
+
 
 @cursoRouter.post("/cadastro")
 async def cadastro(
@@ -34,6 +38,7 @@ async def cadastro(
     novo_curso = criar_curso(session, curso_schema)
     return {"message": f"Curso cadastrado com sucesso: {novo_curso.nome}"}
 
+
 @cursoRouter.put("/atualizar/{curso_id}")
 async def atualizar(
     curso_id: int,
@@ -46,6 +51,7 @@ async def atualizar(
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado")
     return {"message": f"Curso atualizado com sucesso: {curso.nome}"}
+
 
 @cursoRouter.delete("/deletar/{curso_id}")
 async def deletar(

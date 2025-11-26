@@ -5,12 +5,15 @@ from app.services.conhecimento import criar_conhecimento, listar_conhecimentos, 
 from app.dependencies import pegar_sessao, requer_admin
 from app.models.conhecimentoModels import Conhecimento
 
+
 conhecimentoRouter = APIRouter(prefix="/conhecimento", tags=["conhecimento"])
+
 
 @conhecimentoRouter.get("/", response_model=list[ConhecimentoOut])
 def listar(session: Session = Depends(pegar_sessao)):
 	"""Lista todos os conhecimentos cadastrados no sistema"""
 	return listar_conhecimentos(session)
+
 
 @conhecimentoRouter.get("/{conhecimento_id}", response_model=ConhecimentoOut)
 def buscar(conhecimento_id: int, session: Session = Depends(pegar_sessao)):
@@ -19,6 +22,7 @@ def buscar(conhecimento_id: int, session: Session = Depends(pegar_sessao)):
 	if not conhecimento:
 		raise HTTPException(status_code=404, detail="Conhecimento não encontrado")
 	return conhecimento
+
 
 @conhecimentoRouter.post("/cadastro")
 def cadastrar(
@@ -33,6 +37,7 @@ def cadastrar(
 	criado = criar_conhecimento(session, conhecimento_schema)
 	return {"message": f"Conhecimento '{criado.nome}' cadastrado com sucesso"}
 
+
 @conhecimentoRouter.put("/atualizar/{conhecimento_id}")
 def atualizar(
 	conhecimento_id: int,
@@ -45,6 +50,7 @@ def atualizar(
 	if not conhecimento:
 		raise HTTPException(status_code=404, detail="Conhecimento não encontrado")
 	return {"message": f"Conhecimento '{conhecimento.nome}' atualizado com sucesso"}
+
 
 @conhecimentoRouter.delete("/deletar/{conhecimento_id}")
 def deletar(

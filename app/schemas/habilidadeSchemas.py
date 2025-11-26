@@ -1,7 +1,10 @@
 from pydantic import BaseModel
-from datetime import datetime 
+from datetime import datetime
+
+
 class HabilidadeBase(BaseModel):
     nome: str
+
 
 class HabilidadeOut(HabilidadeBase):
     id: int
@@ -10,6 +13,7 @@ class HabilidadeOut(HabilidadeBase):
     categoria: str | None = None
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
 
 class HabilidadeAtualizar(BaseModel):
     nome: str | None = None

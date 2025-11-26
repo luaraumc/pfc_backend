@@ -2,6 +2,7 @@ from pydantic import BaseModel, field_validator
 from datetime import datetime
 import re
 
+
 class LoginSchema(BaseModel):
     email: str
     senha: str
@@ -34,6 +35,7 @@ class LoginSchema(BaseModel):
 
 class SolicitarCodigoSchema(BaseModel):
     email: str
+
 
 class ConfirmarCodigoSchema(BaseModel):
     email: str
