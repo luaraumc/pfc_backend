@@ -1,9 +1,6 @@
 import os
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-# Variáveis mínimas de ambiente para evitar erros nas imports
 os.environ.setdefault("KEY_CRYPT", "test-key")
 os.environ.setdefault("ALGORITHM", "HS256")
 os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
@@ -13,7 +10,6 @@ os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_PORT", "5432")
 os.environ.setdefault("DB_NAME", "testdb")
 
-from app.dependencies import Base
 from app.schemas import CursoBase, CursoOut
 from app.services.curso import (
 	criar_curso,
@@ -22,32 +18,19 @@ from app.services.curso import (
 	atualizar_curso,
 	deletar_curso,
 )
-
-
-@pytest.fixture(scope="function")
-def session():
-	engine = create_engine("sqlite+pysqlite:///:memory:", echo=False, future=True)
-	TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-	Base.metadata.create_all(bind=engine)
-	db = TestingSessionLocal()
-	try:
-		yield db
-	finally:
-		db.close()
-		Base.metadata.drop_all(bind=engine)
-
-
-def _payload(nome="Curso A", descricao="Descricao A") -> CursoBase:
-	return CursoBase(nome=nome, descricao=descricao)
+from tests.services.utils_test_services import session as session
+from tests.services.utils_test_services import curso_payload as _payload
 
 
 def test_listar_cursos_vazio(session):
+	"""Garante lista vazia quando não há cursos cadastrados."""
 	itens = listar_cursos(session)
 	assert isinstance(itens, list)
 	assert len(itens) == 0
 
 
 def test_criar_curso(session):
+	"""Cria um curso e valida os campos do retorno."""
 	payload = _payload("Python Básico", "Introdução a Python")
 	out = criar_curso(session, payload)
 	assert isinstance(out, CursoOut)
@@ -57,6 +40,7 @@ def test_criar_curso(session):
 
 
 def test_listar_cursos_populado(session):
+	"""Lista cursos após inserir dois registros e confere nomes."""
 	criar_curso(session, _payload("Python", "Intro"))
 	criar_curso(session, _payload("SQL", "Consultas"))
 	itens = listar_cursos(session)
@@ -66,6 +50,7 @@ def test_listar_cursos_populado(session):
 
 
 def test_buscar_curso_por_id(session):
+	"""Busca um curso por ID e valida nome e descrição."""
 	criado = criar_curso(session, _payload("Docker", "Containers"))
 	achado = buscar_curso_por_id(session, criado.id)
 	assert achado is not None
@@ -75,10 +60,12 @@ def test_buscar_curso_por_id(session):
 
 
 def test_buscar_curso_inexistente(session):
+	"""Retorna None ao buscar curso inexistente."""
 	assert buscar_curso_por_id(session, 99999) is None
 
 
 def test_atualizar_curso(session):
+	"""Atualiza nome e descrição de um curso existente."""
 	criado = criar_curso(session, _payload("Git", "Controle de versão"))
 	atualizado = atualizar_curso(session, criado.id, CursoBase(nome="Git Avançado", descricao="Fluxos e boas práticas"))
 	assert atualizado is not None
@@ -88,6 +75,7 @@ def test_atualizar_curso(session):
 
 
 def test_deletar_curso(session):
+	"""Deleta um curso e confirma ausência posterior no banco."""
 	criado = criar_curso(session, _payload("Kubernetes", "Orquestração"))
 	deletado = deletar_curso(session, criado.id)
 	assert deletado is not None

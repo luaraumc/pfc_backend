@@ -1,63 +1,55 @@
-from app.models import Usuario # modelo de tabela definido no arquivo models.py
-from app.schemas import UsuarioBase, UsuarioOut # schema de entrada e saída
+from app.models.usuarioModels import Usuario
+from app.schemas.usuarioSchemas import UsuarioBase, UsuarioOut
 
-"""
-model_dump: converte um objeto do schema em um dicionário para criar ou atualizar modelos SQLAlchemy a partir dos dados recebidos
-model_validate: converte um objeto em um schema Pydantic para retornar dados das funções CRUD no formato esperado pela API
-exclude_unset: gera um dicionário para atualizar apenas os campos que foram informados, sem sobrescrever os demais
-"""
-
-# ======================= CRUD =======================
-
-# CREATE / POST - Cria um novo usuário
 def criar_usuario(session, usuario_data: UsuarioBase) -> UsuarioOut:
-    novo_usuario = Usuario(**usuario_data.model_dump()) # Cria um objeto Usuario a partir dos dados do schema
-    session.add(novo_usuario)  # Adiciona no banco
-    session.commit() # Salva no banco
-    session.refresh(novo_usuario) # Atualiza o objeto com dados do banco
-    return UsuarioOut.model_validate(novo_usuario) # Converte o modelo SQLAlchemy para o schema de saída (UsuarioOut)
+    """Cria um novo usuário no banco de dados a partir dos dados do schema, salva e retorna como UsuarioOut"""
+    novo_usuario = Usuario(**usuario_data.model_dump())
+    session.add(novo_usuario)
+    session.commit()
+    session.refresh(novo_usuario)
+    return UsuarioOut.model_validate(novo_usuario)
 
-# READ / GET - Lista todos os usuários
 def listar_usuarios(session) -> list[UsuarioOut]:
-    usuarios = session.query(Usuario).all()  # Busca todos os usuários no banco
-    return [UsuarioOut.model_validate(usuario) for usuario in usuarios] # Converte cada usuário para o schema de saída
+    """Busca todos os usuários no banco de dados e retorna uma lista convertida para UsuarioOut"""
+    usuarios = session.query(Usuario).all()
+    return [UsuarioOut.model_validate(usuario) for usuario in usuarios]
 
-# READ / GET - Busca um usuário pelo id
 def buscar_usuario_por_id(session, id: int) -> UsuarioOut | None:
-    usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
-    return UsuarioOut.model_validate(usuario) if usuario else None # Se encontrado converte para schema de saída, senão retorna None
+    """Busca um usuário específico pelo ID no banco de dados e retorna como UsuarioOut ou None se não encontrado"""
+    usuario = session.query(Usuario).filter(Usuario.id == id).first()
+    return UsuarioOut.model_validate(usuario) if usuario else None
 
-# READ / GET - Busca um usuário pelo email
 def buscar_usuario_por_email(session, email: str) -> UsuarioOut | None:
-    usuario = session.query(Usuario).filter(Usuario.email == email).first()  # Busca o usuário pelo email
-    return UsuarioOut.model_validate(usuario) if usuario else None # Se encontrado converte para schema de saída, senão retorna None
+    """Busca um usuário específico pelo email no banco de dados e retorna como UsuarioOut ou None se não encontrado"""
+    usuario = session.query(Usuario).filter(Usuario.email == email).first()
+    return UsuarioOut.model_validate(usuario) if usuario else None
 
-# UPDATE / PUT - Atualiza os dados de um usuário existente usando schema
 def atualizar_usuario(session, id: int, usuario_data: UsuarioBase) -> UsuarioOut | None:
-    usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
+    """Busca um usuário pelo ID, atualiza apenas os campos informados no schema, salva no banco e retorna como UsuarioOut"""
+    usuario = session.query(Usuario).filter(Usuario.id == id).first()
     if usuario:
-        # Atualiza os campos do usuário com os dados recebidos
         for key, value in usuario_data.model_dump(exclude_unset=True).items():
             setattr(usuario, key, value)
         session.commit()
         session.refresh(usuario)
-        return UsuarioOut.model_validate(usuario) # Retorna o usuário atualizado como schema de saída
+        return UsuarioOut.model_validate(usuario)
     return None
 
 def atualizar_senha(session, id: int, nova_senha: str) -> UsuarioOut | None:
-    usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
+    """Busca um usuário pelo ID, atualiza apenas a senha, salva no banco e retorna como UsuarioOut"""
+    usuario = session.query(Usuario).filter(Usuario.id == id).first()
     if usuario:
         usuario.senha = nova_senha
         session.commit()
         session.refresh(usuario)
-        return UsuarioOut.model_validate(usuario) # Retorna o usuário atualizado como schema de saída
-    return None
+        return UsuarioOut.model_validate(usuario)
+    return None 
 
-# DELETE / DELETE - Remove um usuário pelo id
 def deletar_usuario(session, id: int) -> UsuarioOut | None:
-    usuario = session.query(Usuario).filter(Usuario.id == id).first()  # Busca o usuário pelo id
+    """Busca um usuário pelo ID, remove do banco de dados e retorna os dados do usuário removido como UsuarioOut"""
+    usuario = session.query(Usuario).filter(Usuario.id == id).first()
     if usuario:
-        session.delete(usuario)  # Remove do banco
+        session.delete(usuario)
         session.commit()
-        return UsuarioOut.model_validate(usuario) # Retorna o usuário removido como schema de saída
+        return UsuarioOut.model_validate(usuario)
     return None
