@@ -3,7 +3,7 @@ from . import Base, Column, Integer, ForeignKey, UniqueConstraint
 
 class ConhecimentoCategoria(Base):
     __tablename__ = 'conhecimento_categoria'
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     conhecimento_id = Column(Integer, ForeignKey('conhecimento.id', ondelete='CASCADE'), nullable=False)
     categoria_id = Column(Integer, ForeignKey('categoria.id', ondelete='CASCADE'), nullable=False)
     peso = Column(Integer, nullable=True)
