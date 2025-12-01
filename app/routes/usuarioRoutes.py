@@ -66,7 +66,7 @@ async def solicitar_codigo_atualizar(payload: SolicitarCodigoSchema, session: Se
 @usuarioRouter.put("/atualizar-senha/{usuario_id}")
 async def atualizar_senha_route(
     usuario_id: int,
-    dados_payload: dict = Body(...),
+    dados: ConfirmarNovaSenhaSchema,
     usuario: Usuario = Depends(verificar_token),
     session: Session = Depends(pegar_sessao)
 ):
@@ -74,11 +74,7 @@ async def atualizar_senha_route(
 
     if usuario.id != usuario_id:
         raise HTTPException(status_code=403, detail="Acesso negado: você só pode atualizar sua própria senha")
-    
-    try:
-        dados = ConfirmarNovaSenhaSchema.model_validate(dados_payload)
-    except ValidationError as e:
-        raise_validation_http_exception(e)
+   
 
     usuario_db = buscar_usuario_por_id(session, usuario_id)
 

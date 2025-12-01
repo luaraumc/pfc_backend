@@ -7,7 +7,6 @@ class UsuarioBase(BaseModel):
     nome: str
     email: str
     senha: str
-    admin: bool = False # por padrão, o usuário não é admin
     carreira_id: int | None = None # usuário admin não precisa de carreira
     curso_id: int | None = None # usuário admin não precisa de curso
 
@@ -43,6 +42,7 @@ class UsuarioBase(BaseModel):
 
 class UsuarioOut(UsuarioBase):
     id: int
+    admin: bool = False # por padrão, o usuário não é admin
     criado_em: datetime
     atualizado_em: datetime
 
