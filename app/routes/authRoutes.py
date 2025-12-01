@@ -7,7 +7,7 @@ from app.models.carreiraModels import Carreira
 from app.dependencies import pegar_sessao
 from app.config import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, KEY_CRYPT 
 from app.schemas.authSchemas import LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema 
-from app.schemas.usuarioSchemas import UsuarioBase
+from app.schemas.usuarioSchemas import UsuarioBase, UsuarioOut
 from jose import JWTError, jwt 
 from random import randint 
 from datetime import datetime, timedelta, timezone 
@@ -23,7 +23,7 @@ authRouter = APIRouter(prefix="/auth", tags=["auth"])
 
 # Cadastrar usuário
 @authRouter.post("/cadastro")
-async def cadastro(usuario_payload: dict = Body(...), session: Session = Depends(pegar_sessao)):
+async def cadastro(usuario_payload: UsuarioBase, session: Session = Depends(pegar_sessao)):
     """Cadastra um novo usuário no sistema."""
     try:
         usuario_schema = UsuarioBase.model_validate(usuario_payload)
@@ -39,19 +39,13 @@ async def cadastro(usuario_payload: dict = Body(...), session: Session = Depends
     if usuario_schema.curso_id == 0:
         usuario_schema.curso_id = None
 
-    if not usuario_schema.admin:
-        if usuario_schema.carreira_id is None:
-            raise HTTPException(status_code=400, detail="Carreira é obrigatória.")
-        if session.get(Carreira, usuario_schema.carreira_id) is None:
-            raise HTTPException(status_code=400, detail="Carreira inexistente.")
-
     usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) 
     criar_usuario(session, usuario_schema) 
     return {"message": f"Usuário cadastrado com sucesso! Redirecionando..."}
 
 # Login de usuário
 @authRouter.post("/login")
-async def login(login_payload: dict = Body(...), session: Session = Depends(pegar_sessao), response: Response = None):
+async def login(login_payload: LoginSchema, session: Session = Depends(pegar_sessao), response: Response = None):
     """Autentica o usuário e retorna apenas o access token; refresh token é enviado em cookie HttpOnly."""
     try:
         login_schema = LoginSchema.model_validate(login_payload)
@@ -140,12 +134,8 @@ async def solicitar_codigo_recuperar(payload: SolicitarCodigoSchema, session: Se
 
 
 @authRouter.post("/recuperar-senha") 
-async def confirmar_nova_senha(nova_senha_payload: dict = Body(...), session: Session = Depends(pegar_sessao)):
+async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Session = Depends(pegar_sessao)):
     """Confirma o código de verificação e atualiza a senha do usuário."""
-    try:
-        nova_senha = ConfirmarNovaSenhaSchema.model_validate(nova_senha_payload)
-    except ValidationError as e:
-        raise_validation_http_exception(e)
 
     # Busca último código válido para motivos de senha
     usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first()
