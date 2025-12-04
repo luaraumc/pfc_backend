@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+# python -m uvicorn app.main:app --reload
 
 app = FastAPI()
 
 # configurando o middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://www.rumotechno.com.br"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
