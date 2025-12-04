@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from datetime import datetime
 import re
 
@@ -54,6 +54,7 @@ class ConfirmarNovaSenhaSchema(BaseModel):
     email: str
     codigo: str
     nova_senha: str
+    confirm_password: str
 
     @field_validator("nova_senha")
     def validar_nova_senha(valor: str) -> str:
@@ -67,5 +68,54 @@ class ConfirmarNovaSenhaSchema(BaseModel):
         if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>\/?\\|]", valor):
             raise ValueError("Nova senha deve conter ao menos um caractere especial")
         return valor
+
+    @model_validator(mode="after")
+    def validar_confirm_password(self):
+        if self.nova_senha != self.confirm_password:
+            raise ValueError("As senhas não coincidem")
+        return self
+
+    model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
+# Cadastro de novo usuário
+class RegistrarUsuarioSchema(BaseModel):
+    nome: str
+    email: str
+    senha: str
+    confirm_password: str
+    carreira_id: int | None = None
+    curso_id: int | None = None
+
+    @field_validator("email")
+    def validar_email(valor: str) -> str:
+        valor = valor.strip()
+        if "@" not in valor:
+            raise ValueError("E-mail inválido")
+        try:
+            dominio = valor.split("@", 1)[1]
+        except Exception:
+            raise ValueError("E-mail inválido")
+        if "." not in dominio or dominio.startswith('.') or dominio.endswith('.'):
+            raise ValueError("E-mail inválido")
+        return valor
+
+    @field_validator("senha")
+    def validar_senha(valor: str) -> str:
+        """Valida a senha. Regras: ao menos 6 caracteres, sem espaços, ao menos uma maiúscula e um caractere especial."""
+        if len(valor) < 6:
+            raise ValueError("Senha deve ter no mínimo 6 caracteres")
+        if re.search(r"\s", valor):
+            raise ValueError("Senha não pode conter espaços")
+        if not re.search(r"[A-Z]", valor):
+            raise ValueError("Senha deve conter ao menos uma letra maiúscula")
+        if not re.search(r"[!@#$%^&*()_\-+=\[\]{};:'\",.<>\/?\\|]", valor):
+            raise ValueError("Senha deve conter ao menos um caractere especial")
+        return valor
+
+    @model_validator(mode="after")
+    def validar_confirm_password(self):
+        if self.senha != self.confirm_password:
+            raise ValueError("As senhas não coincidem")
+        return self
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
