@@ -3,31 +3,27 @@ from app.models.habilidadeModels import Habilidade
 from app.models.vagaHabilidadeModels import VagaHabilidade
 from app.models.carreiraHabilidadeModels import CarreiraHabilidade
 from app.models.categoriaModels import Categoria 
-from app.schemas.vagaSchemas import VagaBase, VagaOut # schema de entrada e saída
-from sqlalchemy.orm import Session # manipular sessões do banco de dados
-from sqlalchemy.exc import IntegrityError # capturar erros de integridade do banco de dados
-from app.services.extracao import padronizar_descricao, extrair_habilidades_descricao, normalizar_habilidade, deduplicar # funções de extração e padronização
+from app.schemas.vagaSchemas import VagaBase, VagaOut
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from app.services.extracao import padronizar_descricao, extrair_habilidades_descricao, normalizar_habilidade, deduplicar
 
-# ======================= CRUD =======================
 
-# CREATE / POST - Cria a vaga sem processar habilidades
+# POST - Cria a vaga sem processar habilidades
 def criar_vaga(session: Session, vaga_data: VagaBase) -> VagaOut:
     """Cria um registro de vaga padronizando a descrição, sem processar habilidades ainda para fluxo de preview"""
-    # Padroniza descrição antes de salvar
-    vaga_data.descricao = padronizar_descricao(vaga_data.descricao)
+    vaga_data.descricao = padronizar_descricao(vaga_data.descricao) # Padroniza descrição antes de salvar
     nova_vaga = Vaga(**vaga_data.model_dump())
     session.add(nova_vaga)
     try:
         session.commit()
+    # Trata duplicidade de descrição (constraint unique)
     except IntegrityError as e:
-        # Trata duplicidade de descrição (constraint unique)
         session.rollback()
-        msg = str(getattr(e, "orig", e)).lower()
+        msg = str(getattr(e, "orig", e)).lower() 
         if "uq_vaga_descricao" in msg or ("unique" in msg and "descricao" in msg) or "duplicate key" in msg:
-            # Use um ValueError sem acoplar ao FastAPI aqui; a rota converterá para HTTP 409
             raise ValueError("DUPLICATE_VAGA_DESCRICAO")
-        # Propaga outros erros de integridade
-        raise
+        raise # Propaga outros erros de integridade
     session.refresh(nova_vaga)
     return VagaOut.model_validate({
         "id": nova_vaga.id,
@@ -37,7 +33,56 @@ def criar_vaga(session: Session, vaga_data: VagaBase) -> VagaOut:
         "carreira_nome": nova_vaga.carreira.nome if nova_vaga.carreira else None,
     })
 
-# CONFIRMAR - Confirma lista final de habilidades para a vaga e associa na carreira
+
+# PREVIEW - Extrai habilidades da descrição da vaga sem salvar as habilidades e relacioná-las com a carreira
+def extrair_habilidades_vaga(session: Session, vaga_id: int) -> list[dict]:
+    """Extrai habilidades da descrição da vaga usando IA e retorna lista para preview com informações de categoria"""
+    vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
+    if not vaga:
+        return []
+    # Usa a versão atual da extração que aceita sessão e retorna apenas os nomes para o preview
+    itens = extrair_habilidades_descricao(vaga.descricao, session=session)
+    finais: list[dict] = []
+    vistos = set()
+    for item in itens:
+        nome_original = item.get("nome") if isinstance(item, dict) else str(item)
+        cat_sug = item.get("categoria_sugerida") if isinstance(item, dict) else None
+        chave = deduplicar(nome_original)
+        if chave not in vistos and nome_original:
+            vistos.add(chave)
+            # Verifica se a habilidade já existe no banco usando nome normalizado para busca
+            nome_normalizado = normalizar_habilidade(nome_original, session=session)
+            habilidade_db = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_normalizado)).first()
+            habilidade_id = habilidade_db.id if habilidade_db else ""
+            # Se existir no banco, preferir a categoria atual do banco e o nome do banco
+            if habilidade_db and habilidade_db.categoria_id:
+                categoria_id = habilidade_db.categoria_id
+                categoria_nome = session.query(Categoria.nome).filter(Categoria.id == habilidade_db.categoria_id).scalar() or ""
+                # Se existe no banco, usa o nome do banco (que pode estar editado/corrigido)
+                nome_para_preview = habilidade_db.nome
+            else:
+                # Caso contrário, tenta casar sugestão com categoria existente
+                categoria_id = ""
+                categoria_nome = ""
+                if cat_sug:
+                    cat_db = session.query(Categoria).filter(Categoria.nome.ilike(cat_sug)).first()
+                    if cat_db:
+                        categoria_id = cat_db.id
+                        categoria_nome = cat_db.nome
+                # Se não existe no banco, usa o nome normalizado como sugestão inicial
+                nome_para_preview = nome_normalizado
+            finais.append({
+                "nome": nome_para_preview,  # nome para edição (do banco se existir, senão normalizado)
+                "habilidade_id": habilidade_id,
+                "categoria_sugerida": cat_sug,
+                "categoria_id": categoria_id,
+                "categoria_nome": categoria_nome,
+                "categoria": categoria_nome,
+            })
+    return finais
+
+
+# CONFIRM - Confirma lista final de habilidades para a vaga e associa na carreira
 def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finais: list) -> dict:
     """Confirma e associa lista final de habilidades editadas à vaga e incrementa frequência na carreira"""
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
@@ -159,7 +204,8 @@ def confirmar_habilidades_vaga(session: Session, vaga_id: int, habilidades_finai
         "habilidades_ja_existiam": habilidades_ja_existiam,
     }
 
-# READ / GET - Lista todas as vagas
+
+# GET - Lista todas as vagas
 def listar_vagas(session: Session) -> list[VagaOut]:
     """Lista todas as vagas ordenadas por data de criação decrescente com informações da carreira"""
     vagas = session.query(Vaga).order_by(Vaga.criado_em.desc()).all()
@@ -176,7 +222,8 @@ def listar_vagas(session: Session) -> list[VagaOut]:
         resultado.append(VagaOut.model_validate(item))
     return resultado
 
-# DELETE / DELETE - Remove a relação vaga-habilidade
+
+# DELETE - Remove a relação vaga-habilidade
 def remover_relacao_vaga_habilidade(session, vaga_id: int, habilidade_id: int) -> bool:
     """Remove a associação entre uma vaga e uma habilidade específica retornando True se removida"""
     relacao = (
@@ -190,7 +237,8 @@ def remover_relacao_vaga_habilidade(session, vaga_id: int, habilidade_id: int) -
     session.commit()
     return True
 
-# DELETE / DELETE - Exclui a vaga decrementando frequências das habilidades na carreira
+
+# DELETE - Exclui a vaga decrementando frequências das habilidades na carreira
 def excluir_vaga_decrementando(session: Session, vaga_id: int) -> bool:
     """Exclui a vaga decrementando frequências das habilidades na carreira e removendo relações com frequência zero"""
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
@@ -223,49 +271,4 @@ def excluir_vaga_decrementando(session: Session, vaga_id: int) -> bool:
     session.commit()
     return True
 
-# PREVIEW - Extrai habilidades da descrição da vaga sem salvar as habilidades e relacioná-las com a carreira
-def extrair_habilidades_vaga(session: Session, vaga_id: int) -> list[dict]:
-    """Extrai habilidades da descrição da vaga usando IA e retorna lista para preview com informações de categoria"""
-    vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
-    if not vaga:
-        return []
-    # usa a versão atual da extração que aceita sessão e retorna apenas os nomes para o preview
-    itens = extrair_habilidades_descricao(vaga.descricao, session=session)
-    finais: list[dict] = []
-    vistos = set()
-    for item in itens:
-        nome_original = item.get("nome") if isinstance(item, dict) else str(item)
-        cat_sug = item.get("categoria_sugerida") if isinstance(item, dict) else None
-        chave = deduplicar(nome_original)
-        if chave not in vistos and nome_original:
-            vistos.add(chave)
-            # Verifica se a habilidade já existe no banco usando nome normalizado para busca
-            nome_normalizado = normalizar_habilidade(nome_original, session=session)
-            habilidade_db = session.query(Habilidade).filter(Habilidade.nome.ilike(nome_normalizado)).first()
-            habilidade_id = habilidade_db.id if habilidade_db else ""
-            # Se existir no banco, preferir a categoria atual do banco e o nome do banco
-            if habilidade_db and habilidade_db.categoria_id:
-                categoria_id = habilidade_db.categoria_id
-                categoria_nome = session.query(Categoria.nome).filter(Categoria.id == habilidade_db.categoria_id).scalar() or ""
-                # Se existe no banco, usa o nome do banco (que pode estar editado/corrigido)
-                nome_para_preview = habilidade_db.nome
-            else:
-                # Caso contrário, tenta casar sugestão com categoria existente
-                categoria_id = ""
-                categoria_nome = ""
-                if cat_sug:
-                    cat_db = session.query(Categoria).filter(Categoria.nome.ilike(cat_sug)).first()
-                    if cat_db:
-                        categoria_id = cat_db.id
-                        categoria_nome = cat_db.nome
-                # Se não existe no banco, usa o nome normalizado como sugestão inicial
-                nome_para_preview = nome_normalizado
-            finais.append({
-                "nome": nome_para_preview,  # nome para edição (do banco se existir, senão normalizado)
-                "habilidade_id": habilidade_id,
-                "categoria_sugerida": cat_sug,
-                "categoria_id": categoria_id,
-                "categoria_nome": categoria_nome,
-                "categoria": categoria_nome,
-            })
-    return finais
+

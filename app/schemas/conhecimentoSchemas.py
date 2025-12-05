@@ -1,8 +1,10 @@
 from pydantic import BaseModel
 from datetime import datetime 
 
+
 class ConhecimentoBase(BaseModel):
     nome: str
+
 
 class ConhecimentoOut(ConhecimentoBase):
     id: int

@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from app.dependencies import pegar_sessao, requer_admin
 from app.models.cursoConhecimentoModels import CursoConhecimento
 
+
 cursoConhecimentoRouter = APIRouter(prefix="/curso", tags=["curso"])
+
 
 @cursoConhecimentoRouter.get("/{curso_id}/conhecimentos", response_model=list[CursoConhecimentoOut])
 async def listar_conhecimentos_curso_route(
@@ -14,6 +16,7 @@ async def listar_conhecimentos_curso_route(
 ):
     """Lista todos os conhecimentos associados a um curso específico"""
     return listar_curso_conhecimentos(session, curso_id)
+
 
 @cursoConhecimentoRouter.post("/{curso_id}/adicionar-conhecimento/{conhecimento_id}", response_model=CursoConhecimentoOut)
 async def adicionar_conhecimento_curso_route(
@@ -28,6 +31,7 @@ async def adicionar_conhecimento_curso_route(
         raise HTTPException(status_code=400, detail="Conhecimento já adicionado ao curso")
     curso_conhecimento_data = CursoConhecimentoBase(curso_id=curso_id, conhecimento_id=conhecimento_id)
     return criar_curso_conhecimento(session, curso_conhecimento_data)
+
 
 @cursoConhecimentoRouter.delete("/{curso_id}/remover-conhecimento/{conhecimento_id}", response_model=CursoConhecimentoOut)
 async def remover_conhecimento_curso_route(

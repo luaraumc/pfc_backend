@@ -120,6 +120,10 @@ def test_preview_habilidades_monkeypatched(app_client, monkeypatch):
 
 	monkeypatch.setattr(extr, "extrair_habilidades_descricao", fake_extract)
 	monkeypatch.setattr(extr, "normalizar_habilidade", fake_norm)
+	# Patch também das referências importadas em app.services.vaga
+	import app.services.vaga as vaga_srv
+	monkeypatch.setattr(vaga_srv, "extrair_habilidades_descricao", fake_extract)
+	monkeypatch.setattr(vaga_srv, "normalizar_habilidade", fake_norm)
 
 	import app.services.vaga as vaga_srv
 	monkeypatch.setattr(vaga_srv, "extrair_habilidades_descricao", fake_extract)
@@ -133,6 +137,7 @@ def test_preview_habilidades_monkeypatched(app_client, monkeypatch):
 	python_it = next(i for i in itens if i["nome"] == existing_name)
 	flask_it = next(i for i in itens if i["nome"].startswith("Flask"))
 	assert python_it.get("habilidade_id") == existing_hid
+	# Nova habilidade sugerida ainda não criada não tem habilidade_id
 	assert flask_it.get("habilidade_id") in ("", None)
 	assert flask_it.get("categoria_id") == cat_id
 

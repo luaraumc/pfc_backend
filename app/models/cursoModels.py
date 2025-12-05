@@ -1,7 +1,5 @@
 from . import Base, Column, Integer,String, Text, DateTime, func
 
-
-
 class Curso(Base):
 	__tablename__ = 'curso'
 	id = Column(Integer, primary_key=True, index=True)

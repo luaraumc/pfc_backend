@@ -1,14 +1,17 @@
 from pydantic import BaseModel
-from typing import List, Dict # tipos para listas e dicionários
+from typing import List, Dict
+
 
 class ItemSimples(BaseModel):
     id: int
     nome: str
 
+
 class RelacaoScore(BaseModel):
     id: int
     nome: str
     score: float
+
 
 class MapaOut(BaseModel):
     cursos: List[ItemSimples]

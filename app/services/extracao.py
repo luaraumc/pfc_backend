@@ -7,7 +7,9 @@ import json, re, unicodedata
 from app.models.normalizacaoModels import Normalizacao
 from app.models.categoriaModels import Categoria 
 
+
 load_dotenv()
+
 
 PROMPT_BASE = """
 Você é um extrator de habilidades técnicas.
@@ -72,6 +74,7 @@ Categorias permitidas (escolha exata de um destes nomes):
  - Web
 """
 
+
 def carregar_padroes_db(session: Session | None) -> list[tuple[re.Pattern, str]]:
     """Carrega padrões de normalização do banco de dados e retorna lista de tuplas (regex compilado, nome padronizado)"""
     if session is None:
@@ -82,6 +85,7 @@ def carregar_padroes_db(session: Session | None) -> list[tuple[re.Pattern, str]]
     except Exception:
         return []
 
+
 def listar_categorias_db(session: Session | None) -> list[str]:
     """Lista nomes de categorias existentes no banco de dados ordenadas alfabeticamente para orientar o modelo de IA"""
     if session is None:
@@ -91,6 +95,7 @@ def listar_categorias_db(session: Session | None) -> list[str]:
         return [c.nome for c in categorias]
     except Exception:
         return []
+
 
 def normalizar_habilidade(habilidade: str, session: Session | None = None) -> str:
     """Normaliza nome de habilidade aplicando padrões do banco de dados e regras de limpeza/formatação"""
@@ -105,15 +110,15 @@ def normalizar_habilidade(habilidade: str, session: Session | None = None) -> st
     habilidade = re.sub(r'\b(dotnet|\.net)[ \-]*\d+(?:\.\d+){0,2}\b', r'dotnet', habilidade) # remove versões de .NET
     habilidade = habilidade.strip(' .;,-') # remove caracteres indesejados nas extremidades
 
-    # Aplica padrões de normalização
-    # 1) Tenta com padrões vindos do banco
-    for regex, valor in carregar_padroes_db(session) or []:  # AQUI os padrões são aplicados
+    # Tenta com padrões de normalização vindos do banco
+    for regex, valor in carregar_padroes_db(session) or []:  # Aqui os padrões são aplicados
         if regex.fullmatch(habilidade):
             return valor  # valor já está com acento e capitalização correta
 
     # Se não encontrou no padrão, capitaliza a primeira letra de cada palavra
     habilidade_cap = ' '.join(p.capitalize() for p in habilidade.split())
     return habilidade_cap
+
 
 def padronizar_descricao(descricao: str) -> str:
     """Padroniza descrição da vaga removendo acentos, caracteres especiais e normalizando espaçamento"""
@@ -124,6 +129,7 @@ def padronizar_descricao(descricao: str) -> str:
     descricao = re.sub(r'\s+', ' ', descricao).strip() # reduz múltiplos espaços e remove espaços nas extremidades
     return descricao
 
+
 def deduplicar(hab: str) -> str:
     """Gera chave de deduplicação removendo acentos, espaços e caracteres especiais para comparação"""
     hab = hab.strip().lower() # remove espaços e converte para minúsculas
@@ -131,6 +137,7 @@ def deduplicar(hab: str) -> str:
     hab = ''.join(c for c in hab if not unicodedata.combining(c)) # remove acentos
     hab = re.sub(r'[^a-z0-9]', '', hab) # remove caracteres especiais
     return hab
+
 
 def extrair_habilidades_descricao(descricao: str, session: Session | None = None) -> List[dict]:
     """Extrai habilidades técnicas da descrição usando OpenAI GPT-4.1 e retorna lista com nomes normalizados e categorias sugeridas"""
@@ -146,6 +153,7 @@ def extrair_habilidades_descricao(descricao: str, session: Session | None = None
             max_output_tokens=1000
         )
         texto_completo = ""
+        
         # Extrai o texto da resposta
         if hasattr(resposta, "output_text") and resposta.output_text:
             texto_completo = resposta.output_text.strip() # resposta direta

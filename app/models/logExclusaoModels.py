@@ -1,6 +1,5 @@
 from . import Base, Column, Integer, String, DateTime, func
 
-
 class LogExclusao(Base):
 	__tablename__ = 'log_exclusoes'
 	id = Column(Integer, primary_key=True, index=True)

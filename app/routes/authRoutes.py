@@ -6,8 +6,8 @@ from app.models.codigoAutenticacaoModels import CodigoAutenticacao
 from app.models.carreiraModels import Carreira
 from app.dependencies import pegar_sessao
 from app.config import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, KEY_CRYPT 
-from app.schemas.authSchemas import LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema 
-from app.schemas.usuarioSchemas import UsuarioBase, UsuarioOut
+from app.schemas.authSchemas import LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema, RegistrarUsuarioSchema 
+from app.schemas.usuarioSchemas import UsuarioOut
 from jose import JWTError, jwt 
 from random import randint 
 from datetime import datetime, timedelta, timezone 
@@ -17,33 +17,43 @@ import resend
 from pydantic import ValidationError
 from app.utils.errors import raise_validation_http_exception
 
+
 load_dotenv()
+
 
 authRouter = APIRouter(prefix="/auth", tags=["auth"])
 
-# Cadastrar usuário
+
 @authRouter.post("/cadastro")
-async def cadastro(usuario_payload: UsuarioBase, session: Session = Depends(pegar_sessao)):
+async def cadastro(usuario_payload: RegistrarUsuarioSchema, session: Session = Depends(pegar_sessao)):
     """Cadastra um novo usuário no sistema."""
     try:
-        usuario_schema = UsuarioBase.model_validate(usuario_payload)
+        usuario_schema = RegistrarUsuarioSchema.model_validate(usuario_payload)
     except ValidationError as e:
         raise_validation_http_exception(e)
 
-    usuario = session.query(Usuario).filter(Usuario.email == usuario_schema.email).first() # verifica se o email já existe no banco de dados. (first pega o primeiro resultado que encontrar, se encontrar algum resultado, significa que o email já existe)
+    usuario = session.query(Usuario).filter(Usuario.email == usuario_schema.email).first()
     if usuario:
-        raise HTTPException(status_code=400, detail="Email já cadastrado.") # se ja existir um usuario com esse email, retorna um erro
+        raise HTTPException(status_code=400, detail="Email já cadastrado.")
 
     if usuario_schema.carreira_id == 0:
         usuario_schema.carreira_id = None
     if usuario_schema.curso_id == 0:
         usuario_schema.curso_id = None
 
-    usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) 
-    criar_usuario(session, usuario_schema) 
+    senha_hash = bcrypt_context.hash(usuario_schema.senha)
+    # Monta dados mínimos para criação, descartando confirm_password
+    dados_criacao = {
+        "nome": usuario_schema.nome,
+        "email": usuario_schema.email,
+        "senha": senha_hash,
+        "carreira_id": usuario_schema.carreira_id,
+        "curso_id": usuario_schema.curso_id,
+    }
+    criar_usuario(session, dados_criacao)
     return {"message": f"Usuário cadastrado com sucesso! Redirecionando..."}
 
-# Login de usuário
+
 @authRouter.post("/login")
 async def login(login_payload: LoginSchema, session: Session = Depends(pegar_sessao), response: Response = None):
     """Autentica o usuário e retorna apenas o access token; refresh token é enviado em cookie HttpOnly."""
@@ -57,7 +67,8 @@ async def login(login_payload: LoginSchema, session: Session = Depends(pegar_ses
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
     else:
         access_token = criar_token(usuario.id) 
-        # cria refresh token e seta em cookie HttpOnly (browser enviará automaticamente em requests subsequentes)
+
+        # cria refresh token e seta em cookie HttpOnly (navegador enviará automaticamente em requests subsequentes)
         refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7))
 
         if response is not None:
@@ -70,7 +81,6 @@ async def login(login_payload: LoginSchema, session: Session = Depends(pegar_ses
                 max_age=7*24*3600,
                 path="/",
             )
-
 
         return {
             "access_token": access_token,
@@ -100,6 +110,7 @@ async def usar_refresh_token(request: Request, response: Response, session: Sess
     
     try:
         new_refresh = criar_token(usuario.id, duracao_token=timedelta(days=7))
+
         # atualiza cookie de refresh para cross-site
         response.set_cookie(
             key="refresh_token",
@@ -137,7 +148,6 @@ async def solicitar_codigo_recuperar(payload: SolicitarCodigoSchema, session: Se
 async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Session = Depends(pegar_sessao)):
     """Confirma o código de verificação e atualiza a senha do usuário."""
 
-    # Busca último código válido para motivos de senha
     usuario = session.query(Usuario).filter(Usuario.email == nova_senha.email).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
@@ -160,9 +170,10 @@ async def confirmar_nova_senha(nova_senha: ConfirmarNovaSenhaSchema, session: Se
     session.commit()
     return {"detail": "Senha atualizada com sucesso."}
 
+
 # ======================== FUNÇÕES AUXILIARES =======================
 
-# Para refresh
+
 def criar_token(id_usuario, duracao_token = timedelta(minutes = ACCESS_TOKEN_EXPIRE_MINUTES)):
     """Cria um token JWT para o usuário com tempo de expiração definido."""
     data_expiracao = datetime.now(timezone.utc) + duracao_token 
@@ -173,7 +184,7 @@ def criar_token(id_usuario, duracao_token = timedelta(minutes = ACCESS_TOKEN_EXP
     jwt_codificado = jwt.encode(dic_informacoes,KEY_CRYPT, ALGORITHM) 
     return jwt_codificado
 
-# Para login
+
 def autenticar_usuario(email, senha, session):
     """Verifica se o email e senha correspondem."""
     usuario = session.query(Usuario).filter(Usuario.email == email).first() 

@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# python -m uvicorn app.main:app --reload
+
 
 app = FastAPI()
+
 
 # configurando o middleware CORS
 app.add_middleware(
@@ -12,6 +13,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 from app.routes.authRoutes import authRouter
 from app.routes.carreiraHabilidadeRoutes import carreiraHabilidadeRouter
@@ -25,6 +27,7 @@ from app.routes.mapeamentoRoutes import mapeamentoRouter
 from app.routes.usuarioHabilidadeRoutes import usuarioHabilidadeRouter
 from app.routes.usuarioRoutes import usuarioRouter
 from app.routes.vagaRoutes import vagaRouter
+
 
 app.include_router(authRouter)
 app.include_router(carreiraHabilidadeRouter)

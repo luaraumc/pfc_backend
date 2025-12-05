@@ -1,6 +1,5 @@
 from . import Base, Column, Integer, String, Text, Boolean, DateTime, ForeignKey, func, relationship
 
-
 class Usuario(Base):
 	__tablename__ = 'usuario'
 	id = Column(Integer, primary_key=True, index=True)

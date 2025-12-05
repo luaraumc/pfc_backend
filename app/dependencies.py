@@ -8,12 +8,15 @@ from typing import Any
 from dotenv import load_dotenv
 import os
 
+
 load_dotenv()
+
 
 DATABASE_URL = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
 
 def pegar_sessao():
     """Dependência para obter uma sessão do banco de dados"""
@@ -23,7 +26,7 @@ def pegar_sessao():
     finally: 
         session.close()
 
-# Verificar o token JWT e obter o usuário autenticado
+
 def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depends(pegar_sessao)):
     """Verifica o token JWT e retorna o usuário autenticado ou levanta uma exceção HTTP 401"""
     from app.models.usuarioModels import Usuario
@@ -37,7 +40,7 @@ def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depe
         raise HTTPException(status_code=401, detail="Acesso inválido")
     return usuario
 
-# Verifica se o usuário autenticado é um administrador
+
 def requer_admin(usuario: Any = Depends(verificar_token)):
     """Verifica se o usuário autenticado é um administrador, levantando exceção HTTP 403 se não for"""
     is_admin = getattr(usuario, "admin", None)

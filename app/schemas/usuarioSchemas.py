@@ -1,8 +1,8 @@
-from pydantic import BaseModel, field_validator # criação dos schemas e validação de campos
-from datetime import datetime # campos de data e hora
+from pydantic import BaseModel, field_validator
+from datetime import datetime
 import re
 
-# Schema de Usuario
+
 class UsuarioBase(BaseModel):
     nome: str
     email: str
@@ -39,13 +39,19 @@ class UsuarioBase(BaseModel):
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
-class UsuarioOut(UsuarioBase):
+
+class UsuarioOut(BaseModel):
     id: int
+    nome: str
+    email: str
     admin: bool = False # por padrão, o usuário não é admin
+    carreira_id: int | None = None
+    curso_id: int | None = None
     criado_em: datetime
     atualizado_em: datetime
 
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
+
 
 class AtualizarUsuarioSchema(BaseModel):
     nome: str

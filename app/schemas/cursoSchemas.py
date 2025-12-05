@@ -1,9 +1,11 @@
 from pydantic import BaseModel
-from datetime import datetime # campos de data e hora
+from datetime import datetime
+
 
 class CursoBase(BaseModel):
     nome: str
     descricao: str
+
 
 class CursoOut(CursoBase):
     id: int

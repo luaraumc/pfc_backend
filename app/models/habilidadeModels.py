@@ -1,6 +1,5 @@
 from . import Base, Column, Integer, String, DateTime, ForeignKey, func, relationship
 
-
 class Habilidade(Base):
     __tablename__ = 'habilidade'
     id = Column(Integer, primary_key=True, index=True)

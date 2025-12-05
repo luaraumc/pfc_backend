@@ -1,6 +1,6 @@
 # Backend
 
-API REST construída com FastAPI, SQLAlchemy e Alembic. Inclui autenticação via JWT, gestão de usuários, carreiras, cursos, habilidades, vagas e extração de habilidades com suporte OpenAI.
+API REST construída com FastAPI, SQLAlchemy e Alembic. Inclui autenticação via JWT, gestão de perfil de usuário, carreiras, cursos, habilidades, vagas de emprego e extração de habilidades das vagascom suporte OpenAI.
 
 ## Configuração do ambiente
 
@@ -80,8 +80,8 @@ pfc_backend/
 		main.py                # instancia FastAPI, CORS e inclui as rotas
 		config.py              # JWT (algoritmo, chave, expiração) e OAuth2 schema
 		dependencies.py        # engine, SessionLocal, Base e dependências (auth/admin)
-		models.py              # modelos SQLAlchemy (tabelas e relacionamentos)
-		schemas.py             # Pydantic schemas de entrada/saída
+		models/             # modelos SQLAlchemy (tabelas e relacionamentos)
+		schemas/            # Pydantic schemas de entrada/saída
 		routes/                # rotas agrupadas (auth, usuario, carreira, curso, etc.)
 		services/              # regras de negócio (CRUDs e extras)
 		utils/errors.py        # utilitários de erro/validação

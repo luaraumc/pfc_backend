@@ -2,19 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.schemas.conhecimentoCategoriaSchemas import ConhecimentoCategoriaBase, ConhecimentoCategoriaOut, ConhecimentoCategoriaAtualizar
 from app.dependencies import pegar_sessao, requer_admin
-from app.services.conhecimentoCategoria import (
-    listar_conhecimento_categorias,
-    criar_conhecimento_categoria,
-    remover_conhecimento_categoria,
-    atualizar_conhecimento_categoria
-)
+from app.services.conhecimentoCategoria import listar_conhecimento_categorias, criar_conhecimento_categoria, remover_conhecimento_categoria, atualizar_conhecimento_categoria
+
 
 conhecimentoCategoriaRouter = APIRouter(prefix="/conhecimento-categoria", tags=["conhecimento_categoria"])
+
 
 @conhecimentoCategoriaRouter.get("/{conhecimento_id}", response_model=list[ConhecimentoCategoriaOut])
 def listar_por_conhecimento(conhecimento_id: int, session: Session = Depends(pegar_sessao)):
     """Lista todas as categorias associadas a um conhecimento específico"""
     return listar_conhecimento_categorias(session, conhecimento_id)
+
 
 @conhecimentoCategoriaRouter.post("/", response_model=ConhecimentoCategoriaOut)
 def criar(
@@ -28,6 +26,7 @@ def criar(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @conhecimentoCategoriaRouter.delete("/{conhecimento_id}/{categoria_id}")
 def remover(
     conhecimento_id: int,
@@ -40,6 +39,7 @@ def remover(
     if not rel:
         raise HTTPException(status_code=404, detail="Relação não encontrada")
     return {"status": "removida", "conhecimento_id": conhecimento_id, "categoria_id": categoria_id}
+
 
 @conhecimentoCategoriaRouter.put("/{relacao_id}", response_model=ConhecimentoCategoriaOut)
 def atualizar(

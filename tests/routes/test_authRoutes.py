@@ -56,6 +56,7 @@ def test_cadastro_nao_admin_sem_carreira_ou_curso_erro(app_client):
 		"curso_id": None,
 	}
 	r = client.post("/auth/cadastro", json=payload)
+	# Rota agora exige apenas Carreira obrigatória quando não admin
 	assert r.status_code == 400
 	assert r.json().get("detail") == "Carreira é obrigatória."
 
