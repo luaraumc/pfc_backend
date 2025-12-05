@@ -40,9 +40,13 @@ class UsuarioBase(BaseModel):
     model_config = {'from_attributes': True, 'arbitrary_types_allowed': True}
 
 
-class UsuarioOut(UsuarioBase):
+class UsuarioOut(BaseModel):
     id: int
+    nome: str
+    email: str
     admin: bool = False # por padrão, o usuário não é admin
+    carreira_id: int | None = None
+    curso_id: int | None = None
     criado_em: datetime
     atualizado_em: datetime
 

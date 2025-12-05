@@ -6,8 +6,8 @@ from app.models.codigoAutenticacaoModels import CodigoAutenticacao
 from app.models.carreiraModels import Carreira
 from app.dependencies import pegar_sessao
 from app.config import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, KEY_CRYPT 
-from app.schemas.authSchemas import LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema 
-from app.schemas.usuarioSchemas import UsuarioBase, UsuarioOut
+from app.schemas.authSchemas import LoginSchema, ConfirmarNovaSenhaSchema, SolicitarCodigoSchema, RegistrarUsuarioSchema 
+from app.schemas.usuarioSchemas import UsuarioOut
 from jose import JWTError, jwt 
 from random import randint 
 from datetime import datetime, timedelta, timezone 
@@ -25,10 +25,10 @@ authRouter = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @authRouter.post("/cadastro")
-async def cadastro(usuario_payload: UsuarioBase, session: Session = Depends(pegar_sessao)):
+async def cadastro(usuario_payload: RegistrarUsuarioSchema, session: Session = Depends(pegar_sessao)):
     """Cadastra um novo usuário no sistema."""
     try:
-        usuario_schema = UsuarioBase.model_validate(usuario_payload)
+        usuario_schema = RegistrarUsuarioSchema.model_validate(usuario_payload)
     except ValidationError as e:
         raise_validation_http_exception(e)
 
@@ -41,8 +41,16 @@ async def cadastro(usuario_payload: UsuarioBase, session: Session = Depends(pega
     if usuario_schema.curso_id == 0:
         usuario_schema.curso_id = None
 
-    usuario_schema.senha = bcrypt_context.hash(usuario_schema.senha) 
-    criar_usuario(session, usuario_schema) 
+    senha_hash = bcrypt_context.hash(usuario_schema.senha)
+    # Monta dados mínimos para criação, descartando confirm_password
+    dados_criacao = {
+        "nome": usuario_schema.nome,
+        "email": usuario_schema.email,
+        "senha": senha_hash,
+        "carreira_id": usuario_schema.carreira_id,
+        "curso_id": usuario_schema.curso_id,
+    }
+    criar_usuario(session, dados_criacao)
     return {"message": f"Usuário cadastrado com sucesso! Redirecionando..."}
 
 

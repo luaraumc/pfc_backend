@@ -1,10 +1,11 @@
 from app.models.usuarioModels import Usuario
-from app.schemas.usuarioSchemas import UsuarioBase, UsuarioOut
+from app.schemas.usuarioSchemas import UsuarioOut, UsuarioBase
+from typing import Any, Mapping
 
 
-def criar_usuario(session, usuario_data: UsuarioBase) -> UsuarioOut:
-    """Cria um novo usuário no banco de dados a partir dos dados do schema, salva e retorna como UsuarioOut"""
-    novo_usuario = Usuario(**usuario_data.model_dump())
+def criar_usuario(session, usuario_data: Mapping[str, Any]) -> UsuarioOut:
+    """Cria um novo usuário com dados mínimos (dict), salva e retorna como UsuarioOut."""
+    novo_usuario = Usuario(**dict(usuario_data))
     session.add(novo_usuario)
     session.commit()
     session.refresh(novo_usuario)
