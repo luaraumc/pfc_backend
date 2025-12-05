@@ -12,21 +12,18 @@ from app.services.extracao import padronizar_descricao, extrair_habilidades_desc
 # POST - Cria a vaga sem processar habilidades
 def criar_vaga(session: Session, vaga_data: VagaBase) -> VagaOut:
     """Cria um registro de vaga padronizando a descrição, sem processar habilidades ainda para fluxo de preview"""
-    # Padroniza descrição antes de salvar
-    vaga_data.descricao = padronizar_descricao(vaga_data.descricao)
+    vaga_data.descricao = padronizar_descricao(vaga_data.descricao) # Padroniza descrição antes de salvar
     nova_vaga = Vaga(**vaga_data.model_dump())
     session.add(nova_vaga)
     try:
         session.commit()
+    # Trata duplicidade de descrição (constraint unique)
     except IntegrityError as e:
-        # Trata duplicidade de descrição (constraint unique)
         session.rollback()
-        msg = str(getattr(e, "orig", e)).lower()
+        msg = str(getattr(e, "orig", e)).lower() 
         if "uq_vaga_descricao" in msg or ("unique" in msg and "descricao" in msg) or "duplicate key" in msg:
-            # Use um ValueError sem acoplar ao FastAPI aqui; a rota converterá para HTTP 409
             raise ValueError("DUPLICATE_VAGA_DESCRICAO")
-        # Propaga outros erros de integridade
-        raise
+        raise # Propaga outros erros de integridade
     session.refresh(nova_vaga)
     return VagaOut.model_validate({
         "id": nova_vaga.id,
@@ -43,7 +40,7 @@ def extrair_habilidades_vaga(session: Session, vaga_id: int) -> list[dict]:
     vaga = session.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         return []
-    # usa a versão atual da extração que aceita sessão e retorna apenas os nomes para o preview
+    # Usa a versão atual da extração que aceita sessão e retorna apenas os nomes para o preview
     itens = extrair_habilidades_descricao(vaga.descricao, session=session)
     finais: list[dict] = []
     vistos = set()
