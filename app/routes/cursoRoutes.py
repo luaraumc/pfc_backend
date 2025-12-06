@@ -60,6 +60,15 @@ async def deletar(
     session: Session = Depends(pegar_sessao)
 ):
     """Remove um curso do sistema pelo ID, disponível apenas para administradores"""
+
+    # Bloqueia exclusão de curso se houver usuários vinculados ao curso
+    dependentes = session.query(Usuario).filter(Usuario.curso_id == curso_id).count()
+    if dependentes > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível deletar: existem usuários vinculados a este curso."
+        )
+
     curso = deletar_curso(session, curso_id)
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado")
