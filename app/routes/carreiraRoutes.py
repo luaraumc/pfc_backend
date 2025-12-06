@@ -4,6 +4,7 @@ from app.schemas.carreiraSchemas import CarreiraBase, CarreiraOut
 from app.dependencies import pegar_sessao, requer_admin 
 from sqlalchemy.orm import Session 
 from app.models.carreiraModels import Carreira 
+from app.models.usuarioModels import Usuario
 
 
 carreiraRouter = APIRouter(prefix="/carreira", tags=["carreira"])
@@ -59,7 +60,16 @@ async def deletar(
     session: Session = Depends(pegar_sessao)
 ):
     """Remove uma carreira do sistema pelo ID, disponível apenas para administradores"""
+
+    # Bloqueia exclusão de carreira se houver usuários vinculados à carreira
+    dependentes = session.query(Usuario).filter(Usuario.carreira_id == carreira_id).count()
+    if dependentes > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível deletar: existem usuários vinculados a esta carreira."
+        )
+
     carreira = deletar_carreira(session, carreira_id)
     if not carreira:
         raise HTTPException(status_code=404, detail="Carreira não encontrada")
-    return {"message": f"Carreira deletada com sucesso: {carreira.nome}"}    
+    return {"message": f"Carreira deletada com sucesso: {carreira.nome}"}
