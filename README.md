@@ -77,7 +77,7 @@ EMAIL_FROM=email@dominio.com
 OPENAI_API_KEY=chave_openai
 ```
 
-4) Configure o Alembic
+Configure o Alembic
 
 No arquivo `alembic.ini`, garanta que a chave `sqlalchemy.url` aponte para o mesmo banco especificado no `.env`.
 
