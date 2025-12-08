@@ -28,7 +28,7 @@ Principais recursos:
 ## Tecnologias
 - Python (FastAPI, Pydantic)
 - SQLAlchemy (ORM) e Alembic (migrações)
-- JWT para autenticação
+- JWT (autenticação)
 - Resend (e-mail)
 - OpenAI
 
